@@ -1,4 +1,6 @@
-import type { GeneratedClassroomReport, GeneratedReportEvidenceRef } from '../api/types'
+import type {
+  GeneratedClassroomReport, GeneratedReportEvidenceRef, SegmentDirectoryResponse,
+} from '../api/types'
 import { formatMediaTime } from './evidencePlayback'
 import type { MediaRange } from './evidencePlayback'
 
@@ -7,7 +9,8 @@ import type { MediaRange } from './evidencePlayback'
  * 避免"前端提示合法、服务端拒绝"这种两套口径。
  *
  * 片段目前不是独立实体：它就是生成报告 topics[] 的三元组。目录只做组织与呈现，
- * 不复制一份"片段事实"，否则会与报告产生双份真相。
+ * 不复制一份"片段事实"，否则会与报告产生双份真相。督导的修正（S2-10）存在覆盖层里，
+ * 服务端返回的目录已经叠加了覆盖，这里只负责把它映射成界面用的形状。
  */
 
 export interface DirectorySegment {
@@ -17,6 +20,12 @@ export interface DirectorySegment {
   range: MediaRange
   durationMs: number
   evidenceCount: number
+  /** S2-10 留痕：该片段是否被督导修正过，以及报告里的原值。 */
+  overridden?: boolean
+  originalTitle?: string
+  originalStartMs?: number
+  originalEndMs?: number
+  revision?: number | null
 }
 
 /** 目录按开始时间排序；报告里 topics 的顺序不一定与时间顺序一致。 */
@@ -34,6 +43,26 @@ export function segmentDirectory(report: GeneratedClassroomReport | null): Direc
     .sort((left, right) => left.range.startMs - right.range.startMs
       || left.range.endMs - right.range.endMs
       || left.index - right.index)
+}
+
+/**
+ * 服务端目录（含覆盖后呈现）→ 界面形状。顺序由服务端保证与 segmentDirectory 相同，
+ * 这里不再排一次：两处排序规则一旦不一致，"看到的第几段"和错误提示里的片段号就会对不上。
+ */
+export function directorySegments(directory: SegmentDirectoryResponse): DirectorySegment[] {
+  return directory.segments.map(entry => ({
+    key: entry.key,
+    index: entry.index,
+    title: entry.title,
+    range: { startMs: entry.startMs, endMs: entry.endMs },
+    durationMs: entry.durationMs,
+    evidenceCount: entry.evidenceCount,
+    overridden: entry.overridden,
+    originalTitle: entry.originalTitle,
+    originalStartMs: entry.originalStartMs,
+    originalEndMs: entry.originalEndMs,
+    revision: entry.revision,
+  }))
 }
 
 /** 目录的可读标签，例如 "02｜01:20 – 01:50（30 秒，3 条证据）"。 */
@@ -84,7 +113,7 @@ const OK: SegmentEditVerdict = { ok: true, code: null, message: '' }
 
 /**
  * 校验一次片段修改。规则与后端保持一致，且**顺序固定**（先标题、再区间、再越界、最后重叠），
- * 这样前后端对同一个输入给出同一个错误码。
+ * 这样前后端对同一个输入给出同一个错误码。边界没变时不查重叠，理由见下面 return OK 处的注释。
  */
 export function validateSegmentEdit(
   segments: DirectorySegment[],
@@ -108,6 +137,9 @@ export function validateSegmentEdit(
   if (draft.startMs < 0 || draft.endMs > mediaDurationMs) {
     return { ok: false, code: 'SEGMENT_OUT_OF_MEDIA', message: '片段范围超出课堂媒体时长。' }
   }
+  // 区间没变时不查重叠：AI 报告的片段划分本身允许互相重叠（只保证每条证据落在本片段内），
+  // 若对"只改标题"也强制不重叠，督导连给一个与邻居重叠的片段改名都做不到。后端同规则。
+  if (draft.startMs === target.range.startMs && draft.endMs === target.range.endMs) return OK
   const others = segments.filter(segment => segment.key !== key)
   const overlap = findOverlaps([...others, {
     key, index: target.index, title: draft.title, durationMs: draft.endMs - draft.startMs,

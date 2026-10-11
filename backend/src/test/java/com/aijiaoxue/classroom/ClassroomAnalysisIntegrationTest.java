@@ -618,7 +618,18 @@ class ClassroomAnalysisIntegrationTest {
     /** Publishes one report version for a fresh upload and returns its media id. */
     private long mediaWithGeneratedReport(String uploadKey,String requestKey,String providerRef) throws Exception {
         var prepared=preparedExternalRun(uploadKey,requestKey);
-        String draft=generatedDraft(prepared);
+        return mediaWithGeneratedReport(prepared,providerRef,topic(prepared,0,20000,"讲解递归","seg-1"));
+    }
+
+    /** S2-10 需要多片段、甚至互相重叠的划分，所以片段由调用方给出。 */
+    private long mediaWithGeneratedReport(String uploadKey,String requestKey,String providerRef,String topics)
+            throws Exception {
+        return mediaWithGeneratedReport(preparedExternalRun(uploadKey,requestKey),providerRef,topics);
+    }
+
+    private long mediaWithGeneratedReport(PreparedExternalRun prepared,String providerRef,String topics)
+            throws Exception {
+        String draft=generatedDraft(prepared,topics);
         var reservation=paidBudget.reserve("REPORT",prepared.run().id(),"e".repeat(64),
                 "qwen3.7-plus",100,2000);
         paidBudget.markSucceeded(reservation.row().id(),providerRef,40,20,60,hash(draft));
@@ -758,6 +769,205 @@ class ClassroomAnalysisIntegrationTest {
                 .andExpect(status().isForbidden());
 
         mvc.perform(post(reviewPath+"/confirm").with(csrf())).andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * S2-10 调整片段标题与边界：目录来自报告 topics，修正落在覆盖层并留痕；
+     * 五条规则由服务端强制（绕过前端才是常态），错误码与前端 validateSegmentEdit 一一对应。
+     */
+    @Test void s2segmentOverrideDirectoryAndServerSideRules() throws Exception {
+        var prepared=preparedExternalRun("upload-segment-0001","analysis-segment-0001");
+        String twoTopics=String.join(",",topic(prepared,0,20000,"讲解递归","seg-1"),
+                topic(prepared,20000,60000,"学生练习","seg-2"));
+        long mediaId=mediaWithGeneratedReport(prepared,"provider-segment-1",twoTopics);
+        var supervisor=login("supervisor-a-test");
+        String path="/api/v1/class-sessions/media/"+mediaId+"/segments";
+
+        // 目录：报告就是唯一真相，未覆盖时呈现原始标题与边界
+        mvc.perform(get(path).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control","private, no-store"))
+                .andExpect(jsonPath("$.mediaDurationMs").value(60000))
+                .andExpect(jsonPath("$.segments.length()").value(2))
+                .andExpect(jsonPath("$.segments[0].key").value("topic-0"))
+                .andExpect(jsonPath("$.segments[0].index").value(0))
+                .andExpect(jsonPath("$.segments[0].overridden").value(false))
+                .andExpect(jsonPath("$.segments[0].originalTitle").value("讲解递归"))
+                .andExpect(jsonPath("$.segments[0].durationMs").value(20000))
+                .andExpect(jsonPath("$.segments[0].evidenceCount").value(1))
+                .andExpect(jsonPath("$.segments[1].key").value("topic-1"))
+                .andExpect(jsonPath("$.segments[1].title").value("学生练习"));
+
+        // 目录与覆盖都要求督导身份（夹具里 teacher-a-test 另持有督导范围，故选主任）
+        mvc.perform(get(path).session(login("director-a-test"))).andExpect(status().isForbidden());
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":10000}")
+                        .with(csrf()).session(login("director-a-test")))
+                .andExpect(status().isForbidden());
+
+        // 规则 1：未知片段
+        mvc.perform(put(path+"/topic-9").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SEGMENT_UNKNOWN"));
+
+        // 规则 2：标题空白或超过 200 字都按同一条规则拒绝
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"   \",\"startMs\":0,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_TITLE_REQUIRED"));
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\""+"x".repeat(201)+"\",\"startMs\":0,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_TITLE_REQUIRED"));
+
+        // 规则 3：空区间或倒置区间
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":10000,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_RANGE_INVALID"));
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":10000,\"endMs\":5000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_RANGE_INVALID"));
+
+        // 规则 4：超出媒体时长（60000ms）
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":60001}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_OUT_OF_MEDIA"));
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":-1,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEGMENT_OUT_OF_MEDIA"));
+
+        // 规则 5：与同报告其他片段重叠，提示里要点名是第几段
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":25000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEGMENT_OVERLAP"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("片段 2")));
+
+        // 合法保存：改名 + 收窄边界，目录同时给出覆盖后的值与原始值（留痕）
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"  讲解递归（改）  \",\"startMs\":0,\"endMs\":18000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segments[0].title").value("讲解递归（改）"))
+                .andExpect(jsonPath("$.segments[0].endMs").value(18000))
+                .andExpect(jsonPath("$.segments[0].durationMs").value(18000))
+                .andExpect(jsonPath("$.segments[0].overridden").value(true))
+                .andExpect(jsonPath("$.segments[0].originalTitle").value("讲解递归"))
+                .andExpect(jsonPath("$.segments[0].originalEndMs").value(20000))
+                .andExpect(jsonPath("$.segments[0].revision").value(1))
+                .andExpect(jsonPath("$.segments[0].editedByUserId").isNotEmpty())
+                .andExpect(jsonPath("$.segments[0].updatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.segments[1].overridden").value(false));
+
+        // 同一片段再改只递增修订号，不追加第二行；覆盖绑定到具体报告版本（AI 重算不继承）
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"讲解递归（再改）\",\"startMs\":0,\"endMs\":17000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segments[0].title").value("讲解递归（再改）"))
+                .andExpect(jsonPath("$.segments[0].revision").value(2));
+        assertEquals(1,jdbc.queryForObject(
+                "SELECT COUNT(*) FROM classroom_segment_override WHERE media_id=?",Integer.class,mediaId));
+        assertEquals(jdbc.queryForObject("""
+                SELECT g.id FROM classroom_generated_report g JOIN classroom_analysis_run r ON r.id=g.run_id
+                WHERE r.media_id=?""",Long.class,mediaId),
+                jdbc.queryForObject("SELECT report_id FROM classroom_segment_override WHERE media_id=?",
+                        Long.class,mediaId));
+
+        // 报告是不可变事实：改的是覆盖层，报告本体一字未动
+        assertEquals("讲解递归",com.jayway.jsonpath.JsonPath.read(
+                mvc.perform(get("/api/v1/class-sessions/media/"+mediaId+"/generated-report").session(supervisor))
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
+                "$.topics[0].summary"));
+
+        // 首尾相接不算重叠，且比对的是"覆盖后的"生效区间：片段 2 从片段 1 修正后的 17000ms 起
+        mvc.perform(put(path+"/topic-1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"学生练习（改）\",\"startMs\":17000,\"endMs\":55000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segments[1].startMs").value(17000))
+                .andExpect(jsonPath("$.segments[1].overridden").value(true))
+                .andExpect(jsonPath("$.segments[1].originalStartMs").value(20000));
+        // 越过片段 1 的生效边界就重叠
+        mvc.perform(put(path+"/topic-1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"学生练习（改）\",\"startMs\":16999,\"endMs\":55000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEGMENT_OVERLAP"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("片段 1")));
+
+        // 没有报告版本时目录为空状态，写入则明确拒绝（不是 500）
+        long noReportMediaId=preparedExternalRun("upload-segment-0002","analysis-segment-0002")
+                .snapshot().input().mediaId();
+        mvc.perform(get("/api/v1/class-sessions/media/"+noReportMediaId+"/segments").session(supervisor))
+                .andExpect(status().isNoContent());
+        mvc.perform(put("/api/v1/class-sessions/media/"+noReportMediaId+"/segments/topic-0")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":10000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEGMENT_REPORT_NOT_READY"));
+    }
+
+    /**
+     * S2-10 的两条边界取舍（决策 DEC-S2-10-01/02）：
+     * ① 只改标题时不重复查重叠——AI 报告的片段划分本身允许重叠，否则督导连改名都做不到；
+     * ② 已确认（冻结）报告仍允许覆盖，因为覆盖不改报告本体，冻结快照仍是教师读到的那一版。
+     */
+    @Test void s2segmentOverrideAllowsTitleOnlyEditAndConfirmedReport() throws Exception {
+        var prepared=preparedExternalRun("upload-segment-0003","analysis-segment-0003");
+        String overlapping=String.join(",",topic(prepared,0,20000,"讲解递归","seg-1"),
+                topic(prepared,10000,60000,"学生练习","seg-2"));
+        long mediaId=mediaWithGeneratedReport(prepared,"provider-segment-2",overlapping);
+        var supervisor=login("supervisor-a-test");
+        String path="/api/v1/class-sessions/media/"+mediaId+"/segments";
+
+        // 报告本身重叠：改边界被拒，只改标题通过
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"改\",\"startMs\":0,\"endMs\":25000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEGMENT_OVERLAP"));
+        mvc.perform(put(path+"/topic-0").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"讲解递归（改名）\",\"startMs\":0,\"endMs\":20000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segments[0].overridden").value(true));
+
+        // 先确认冻结报告，再覆盖：允许，报告本体与冻结快照都不受影响
+        String reviewPath="/api/v1/class-sessions/media/"+mediaId+"/generated-report/review";
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[{\"targetKind\":\"TOPIC\",\"targetIndex\":0,"
+                                +"\"verdict\":\"ISSUE\",\"note\":\"环节划分过粗，建议按提问切分\"}]}")
+                        .with(csrf()).session(supervisor)).andExpect(status().isOk());
+        mvc.perform(post(reviewPath+"/confirm").with(csrf()).session(supervisor))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.confirmed").value(true));
+
+        mvc.perform(put(path+"/topic-1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"学生练习（冻结后修正）\",\"startMs\":10000,\"endMs\":60000}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segments[1].title").value("学生练习（冻结后修正）"))
+                .andExpect(jsonPath("$.segments[1].overridden").value(true));
+        assertEquals("讲解递归",com.jayway.jsonpath.JsonPath.read(jdbc.queryForObject(
+                "SELECT snapshot_json FROM classroom_report_review WHERE media_id=?",String.class,mediaId),
+                "$.report.topics[0].summary"));
+        assertEquals(2,jdbc.queryForObject(
+                "SELECT COUNT(*) FROM classroom_segment_override WHERE media_id=?",Integer.class,mediaId));
     }
 
     @Test void generatedReportReadIncludesGlobalAdminAndCourseRoles() throws Exception {
@@ -1373,6 +1583,24 @@ class ClassroomAnalysisIntegrationTest {
                  "changes":[],"interpretations":[],"limitations":["不能推断理解程度"]}
                 """.formatted(prepared.run().id(),prepared.snapshot().sha256(),
                 prepared.snapshot().input().transcriptSource().resultId());
+    }
+
+    /** 同一个报告信封，片段由调用方给出（S2-10 要构造多片段、互相重叠的划分）。 */
+    private static String generatedDraft(PreparedExternalRun prepared,String topics) {
+        return """
+                {"reportVersion":"1.0","runId":%d,"inputSha256":"%s",
+                 "topics":[%s],
+                 "changes":[],"interpretations":[],"limitations":["不能推断理解程度"]}
+                """.formatted(prepared.run().id(),prepared.snapshot().sha256(),topics);
+    }
+
+    /** 一条片段。校准器要求 summary 非空，且证据区间必须与片段区间相交。 */
+    private static String topic(PreparedExternalRun prepared,long startMs,long endMs,String summary,
+                                String segmentId) {
+        return """
+                {"startMs":%d,"endMs":%d,"summary":"%s","evidenceRefs":[{"resultId":%d,"itemType":"SEGMENT","itemId":"%s"}]}
+                """.formatted(startMs,endMs,summary,
+                prepared.snapshot().input().transcriptSource().resultId(),segmentId);
     }
 
     private static String hash(String value) throws Exception {
