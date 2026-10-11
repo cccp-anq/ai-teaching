@@ -184,8 +184,13 @@ public class ClassroomAnalysisRepository {
                 .stream().findFirst().orElse(null);
     }
 
-    MediaAccess moduleMediaAccess(long mediaId,long jobId,String moduleType,int attempt) {
-        return jdbc.query("""
+    /** S2-11：教师端只有 mediaId，无法据此解析证据时间，故把课堂会话标识一并提供。 */
+    Long classSessionIdOf(long mediaId) {
+        return jdbc.query("SELECT class_session_id FROM classroom_media WHERE id=?",
+                (rs,n) -> rs.getLong(1), mediaId).stream().findFirst().orElse(null);
+    }
+
+    MediaAccess moduleMediaAccess(long mediaId,long jobId,String moduleType,int attempt) {        return jdbc.query("""
                 SELECT m.storage_key,m.content_type,m.byte_size,s.offering_id
                 FROM classroom_media m JOIN class_session s ON s.id=m.class_session_id
                 JOIN classroom_module_job j ON j.media_id=m.id

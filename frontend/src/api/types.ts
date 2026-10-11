@@ -365,6 +365,8 @@ export interface ClassroomActionSuggestionResult {
   available: boolean
   reasonCode: ActionSuggestionReason | null
   suggestions: ActionSuggestion[]
+  /** S2-11：教师端据此定位证据并播放；无媒体上下文时为 null。 */
+  classSessionId: number | null
 }
 
 export type TeacherActionStatus = 'PLANNED' | 'ACTIVE' | 'DONE' | 'ABANDONED'

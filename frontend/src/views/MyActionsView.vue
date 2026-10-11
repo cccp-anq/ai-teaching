@@ -6,6 +6,11 @@ import {
   changeTeacherActionStatus, createTeacherAction, evidenceSummary, fetchActionSuggestions, fetchMyActions,
   nextActionStatuses, suggestionActionDraft, updateTeacherAction,
 } from '../api/teacherActions'
+import { fetchClassroom } from '../api/classroom'
+import { evidenceRefsParam, toEvidenceRefs } from '../lib/evidenceRefs'
+import { coveringRange, rangeLabel, shouldStopAtRangeEnd } from '../lib/evidencePlayback'
+import type { MediaRange } from '../lib/evidencePlayback'
+import type { ClassroomReport } from '../api/types'
 import type {
   ActionSuggestion, ClassroomActionSuggestionResult, TeacherAction, TeacherActionStatus,
 } from '../api/types'
@@ -131,6 +136,66 @@ async function changeStatus(action: TeacherAction, status: TeacherActionStatus):
     actions.value = actions.value.map(item => item.actionId === updated.actionId ? updated : item)
   })
 }
+
+// ---- S2-11：回看建议关联的课堂证据 -------------------------------------------
+const player = ref<HTMLVideoElement | null>(null)
+const objective = ref<ClassroomReport | null>(null)
+const activeRange = ref<MediaRange | null>(null)
+const evidenceNotice = ref<string | null>(null)
+
+const playbackUrl = computed(() => mediaId.value === null
+  ? null
+  : `/api/v1/class-sessions/media/${mediaId.value}/content`)
+
+/** 证据引用要解析成时间必须拿到客观报告；只有 mediaId 时先按 classSessionId 取一次课堂。 */
+async function ensureObjective(): Promise<ClassroomReport | null> {
+  if (objective.value !== null) return objective.value
+  const sessionId = suggestions.value?.classSessionId ?? null
+  const currentMediaId = mediaId.value
+  if (sessionId === null || currentMediaId === null) return null
+  const classroom = await fetchClassroom(sessionId)
+  const media = classroom.media.find(item => item.mediaId === currentMediaId) ?? null
+  objective.value = media?.report ?? null
+  return objective.value
+}
+
+async function playSuggestionEvidence(suggestion: ActionSuggestion): Promise<void> {
+  evidenceNotice.value = null
+  try {
+    const report = await ensureObjective()
+    const element = player.value
+    if (report === null || element === null) {
+      evidenceNotice.value = '暂时拿不到这节课的课堂证据，无法定位播放。'
+      return
+    }
+    const refs = toEvidenceRefs(suggestion.evidence)
+    const range = coveringRange(report, refs)
+    if (range === null) {
+      evidenceNotice.value = '这条建议的课堂证据当前无法定位（证据引用缺失），因此不做跳转。'
+      return
+    }
+    element.currentTime = range.startMs / 1000
+    activeRange.value = range
+    await element.play()
+  } catch {
+    evidenceNotice.value = '浏览器阻止了自动播放，请手动点击播放器继续。'
+  }
+}
+
+function onEvidenceTimeUpdate(): void {
+  const element = player.value
+  const range = activeRange.value
+  if (element === null || range === null) return
+  if (shouldStopAtRangeEnd(element.currentTime * 1000, range)) {
+    element.pause()
+    activeRange.value = null
+  }
+}
+
+/** 供界面显示证据条数之外的定位信息，也可用于复制链接。 */
+function suggestionEvidenceParam(suggestion: ActionSuggestion): string {
+  return evidenceRefsParam(toEvidenceRefs(suggestion.evidence))
+}
 </script>
 
 <template>
@@ -151,6 +216,12 @@ async function changeStatus(action: TeacherAction, status: TeacherActionStatus):
 
       <section v-if="mediaId !== null" class="suggestion-panel">
         <h2>AI 行动建议</h2>
+        <video ref="player" class="evidence-player" :src="playbackUrl ?? undefined" controls
+               preload="metadata" @timeupdate="onEvidenceTimeUpdate"></video>
+        <p v-if="activeRange !== null" class="state-note" role="status">
+          正在播放证据片段 {{ rangeLabel(activeRange) }}
+        </p>
+        <p v-if="evidenceNotice !== null" class="state-note" role="status">{{ evidenceNotice }}</p>
         <p v-if="suggestions !== null && !suggestions.available" class="state-note">
           {{ suggestions.reasonCode !== null ? REASON_MESSAGES[suggestions.reasonCode] ?? '暂无可用建议。' : '暂无可用建议。' }}
         </p>
@@ -164,6 +235,10 @@ async function changeStatus(action: TeacherAction, status: TeacherActionStatus):
             <p v-if="suggestion.alternatives.length > 0" class="suggestion-alternatives">
               其他可能：{{ suggestion.alternatives.join('；') }}
             </p>
+            <button type="button" class="secondary" :disabled="busy || suggestion.evidence.length === 0"
+                    :title="suggestionEvidenceParam(suggestion)" @click="playSuggestionEvidence(suggestion)">
+              回看证据
+            </button>
             <button type="button" class="secondary" :disabled="busy" @click="pickSuggestion(suggestion)">
               选为下次尝试
             </button>
