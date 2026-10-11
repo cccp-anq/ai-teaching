@@ -42,8 +42,8 @@ class ApplicationTest {
         mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(requestIdFilter).apply(springSecurity()).build();
     }
     @Test void contextStartsWithMybatisAndFlywayAtCurrentMigration() throws Exception {
-        assertEquals(23, flyway.info().all().length);
-        assertEquals("23", flyway.info().current().getVersion().toString());
+        assertEquals(24, flyway.info().all().length);
+        assertEquals("24", flyway.info().current().getVersion().toString());
         assertEquals(0, flyway.info().pending().length);
         try (var session = sessions.openSession(); var statement = session.getConnection().createStatement();
              var result = statement.executeQuery("SELECT 1")) {

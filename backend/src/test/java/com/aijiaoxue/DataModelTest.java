@@ -119,8 +119,8 @@ class DataModelTest {
         assertEquals(1,number("SELECT COUNT(*) FROM source_timetable_row r JOIN import_batch b ON r.import_batch_id=b.id JOIN class_schedule s ON r.schedule_id=s.id AND r.offering_id=s.offering_id WHERE r.id=?",row));
     }
     @Test void dm10_migrationAndRepeatAreSuccessful() throws Exception {
-        assertEquals(23,migrationsApplied);
-        assertEquals("23",flyway.info().current().getVersion().toString());
+        assertEquals(24,migrationsApplied);
+        assertEquals("24",flyway.info().current().getVersion().toString());
         flyway.validate();
         assertEquals(0,flyway.migrate().migrationsExecuted);
         assertEquals(2,number("SELECT COUNT(*) FROM class_schedule WHERE offering_id=?",offering));
@@ -196,6 +196,7 @@ class DataModelTest {
                 "teacher_action",
                 "classroom_report_review","classroom_report_review_annotation",
                 "classroom_report_notification",
+                "classroom_segment_override",
                 "flyway_schema_history"),tables);
         assertIndex("course_offering","uq_offering_source_key",false,"source_offering_key");
         assertIndex("class_schedule","uq_schedule_source_key",false,"source_schedule_key");
@@ -224,6 +225,8 @@ class DataModelTest {
                 "media_id","module_type","attempt");
         assertIndex("classroom_module_retry_request","uq_module_retry_generation",false,"report_id","generation");
         assertIndex("classroom_module_retry_request","uq_module_retry_key",false,"report_id","request_key_sha256");
+        // S2-10 覆盖层：同一报告版本内一个片段只能有一行覆盖，否则"当前边界"就有两个答案。
+        assertIndex("classroom_segment_override","uq_segment_override_target",false,"report_id","segment_key");
         assertIndex("username_only_login_audit","ix_username_only_login_audit_created",true,
                 "created_at","user_account_id");
         assertThrows(SQLException.class, () -> insert("INSERT INTO location(display_name,normalized_name,location_group,location_type) VALUES (?,?,?,?)","线上","线上","线上","ONLINE"));

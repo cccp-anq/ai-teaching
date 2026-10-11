@@ -422,7 +422,6 @@ export interface ConfirmedReportSnapshot {
 }
 
 // ---- Sprint 2 teacher notification (S2-05) ----------------------------------
-
 export type TeacherNotificationKind = 'REPORT_PUBLISHED'
 export type TeacherNotificationState = 'UNREAD' | 'READ'
 
@@ -433,4 +432,42 @@ export interface TeacherNotification {
   state: TeacherNotificationState
   createdAt: string
   readAt: string | null
+}
+
+// ---- Sprint 2 segment directory and override (S2-01/S2-10) -------------------
+
+/**
+ * 目录里的一条片段。片段不是独立实体：它就是报告 topics[] 的三元组，
+ * 存在覆盖（override）时这里给出修正后的值，同时用 original* 保留报告原值以便追溯。
+ */
+export interface SegmentDirectoryEntry {
+  key: string
+  index: number
+  title: string
+  startMs: number
+  endMs: number
+  durationMs: number
+  evidenceCount: number
+  overridden: boolean
+  originalTitle: string
+  originalStartMs: number
+  originalEndMs: number
+  editedByUserId: number | null
+  revision: number | null
+  updatedAt: string | null
+}
+
+/** GET /class-sessions/media/{id}/segments 的响应；没有报告版本时服务端返回 204。 */
+export interface SegmentDirectoryResponse {
+  reportId: number
+  mediaId: number
+  mediaDurationMs: number
+  segments: SegmentDirectoryEntry[]
+}
+
+/** PUT /class-sessions/media/{id}/segments/{segmentKey} 的请求体。 */
+export interface SegmentOverrideDraft {
+  title: string
+  startMs: number
+  endMs: number
 }

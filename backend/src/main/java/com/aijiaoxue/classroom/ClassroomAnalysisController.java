@@ -22,8 +22,10 @@ import tools.jackson.databind.JsonNode;
 public class ClassroomAnalysisController {
     private final ClassroomAnalysisService service;
     private final ClassroomReportReviewService reviews;
-    public ClassroomAnalysisController(ClassroomAnalysisService service,ClassroomReportReviewService reviews) {
-        this.service=service; this.reviews=reviews;
+    private final ClassroomSegmentService segments;
+    public ClassroomAnalysisController(ClassroomAnalysisService service,ClassroomReportReviewService reviews,
+            ClassroomSegmentService segments) {
+        this.service=service; this.reviews=reviews; this.segments=segments;
     }
 
     @PostMapping(value="/course-offerings/{offeringId}/class-sessions/video",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -78,6 +80,20 @@ public class ClassroomAnalysisController {
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
                 .body(service.actionSuggestions(mediaId));
     }
+    @GetMapping("/class-sessions/media/{mediaId}/segments")
+    ResponseEntity<ClassroomSegmentOverride.Directory> segmentDirectory(@PathVariable long mediaId) {
+        var directory=segments.directory(mediaId);
+        return directory==null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL,"private, no-store").build()
+                : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(directory);
+    }
+    @PutMapping(value="/class-sessions/media/{mediaId}/segments/{segmentKey}",
+            consumes=MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<ClassroomSegmentOverride.Directory> saveSegmentOverride(@PathVariable long mediaId,
+            @PathVariable String segmentKey,@RequestBody SegmentEdit body) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
+                .body(segments.save(mediaId,segmentKey,body.title(),body.startMs(),body.endMs()));
+    }
+    record SegmentEdit(String title,long startMs,long endMs) {}
     @GetMapping("/class-sessions/media/{mediaId}/generated-report/versions")
     ResponseEntity<ClassroomAnalysisService.GeneratedReportVersions> generatedReportVersions(
             @PathVariable long mediaId,@RequestParam(defaultValue="0") int page) {

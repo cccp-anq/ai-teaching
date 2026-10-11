@@ -2,7 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchGeneratedClassroomReport } from '../api/classroom'
-import { findOverlaps, segmentDirectory, segmentLabel } from '../lib/segmentDirectory'
+import { fetchSegmentDirectory, saveSegmentOverride, segmentErrorText } from '../api/segments'
+import { formatMediaTime } from '../lib/evidencePlayback'
+import {
+  directorySegments, findOverlaps, segmentDirectory, segmentDraftChanged, segmentLabel,
+  validateSegmentEdit,
+} from '../lib/segmentDirectory'
+import type { DirectorySegment, SegmentEditDraft } from '../lib/segmentDirectory'
 import { ApiClientError } from '../api/client'
 import {
   canConfirmReview, confirmReportReview, fetchReportReview, reviewErrorText, saveReportReview,
@@ -10,11 +16,11 @@ import {
 } from '../api/reportReview'
 import type {
   AnnotationTargetKind, AnnotationVerdict, ClassroomReportReview, GeneratedClassroomReport,
-  ReviewAnnotation,
+  ReviewAnnotation, SegmentDirectoryResponse,
 } from '../api/types'
 
 /**
- * S2-03 标注 AI 问题并记录说明 / S2-04 提交时固定复核快照。
+ * S2-03 标注 AI 问题并记录说明 / S2-04 提交时固定复核快照 / S2-10 修正片段标题与边界。
  *
  * 路由有两条：`/reports/:mediaId/review` 与不带 mediaId 的 `/reports/review`。
  * 复核必须绑定一节课（mediaId），全局导航拿不到它，所以入口指向 `/reports/review`，
@@ -40,6 +46,14 @@ const editingKey = ref<string | null>(null)
 const draftVerdict = ref<AnnotationVerdict>('ISSUE')
 const draftNote = ref('')
 
+// S2-10：服务端目录（含覆盖）与片段修正的编辑态。没有服务端目录就没有媒体时长，
+// 因此这种情况下只读呈现目录，不给编辑入口——规则校验需要课堂总时长。
+const directory = ref<SegmentDirectoryResponse | null>(null)
+const editingSegmentKey = ref<string | null>(null)
+const segmentTitle = ref('')
+const segmentStartSeconds = ref('')
+const segmentEndSeconds = ref('')
+
 const VERDICT_LABELS: Record<AnnotationVerdict, string> = {
   ISSUE: '有问题', ACKNOWLEDGED: '认可',
 }
@@ -53,7 +67,12 @@ interface ReviewTarget {
 }
 
 // S2-01 片段目录：按时间排序呈现报告片段，并标出已复核与区间重叠，便于快速选择复核内容。
-const segments = computed(() => segmentDirectory(report.value))
+// S2-10：督导修正过的片段以服务端目录为准（已叠加覆盖），拿不到时退回报告本身的划分。
+const segments = computed<DirectorySegment[]>(() => directory.value === null
+  ? segmentDirectory(report.value)
+  : directorySegments(directory.value))
+const canEditSegments = computed(() => !forbidden.value && directory.value !== null)
+const mediaDurationMs = computed(() => directory.value?.mediaDurationMs ?? null)
 const overlapKeys = computed(() => new Set(
   findOverlaps(segments.value).flatMap(pair => [pair.left.key, pair.right.key])))
 const annotatedTopicIndexes = computed(() => new Set(
@@ -110,11 +129,14 @@ async function load(): Promise<void> {
   phase.value = 'loading'
   loadError.value = null
   forbidden.value = false
+  directory.value = null
+  editingSegmentKey.value = null
   try {
     report.value = await fetchGeneratedClassroomReport(mediaId.value)
     try {
       review.value = await fetchReportReview(mediaId.value)
       drafts.value = (review.value?.annotations ?? []).map(item => ({ ...item }))
+      directory.value = await fetchSegmentDirectory(mediaId.value)
     } catch (cause) {
       // 非督导读复核底稿会被拒；报告本身仍可只读展示，不能让整页变成错误页。
       if (cause instanceof ApiClientError && cause.status === 403) forbidden.value = true
@@ -154,7 +176,8 @@ function removeAnnotation(target: ReviewTarget): void {
   actionError.value = null
 }
 
-async function run(operation: () => Promise<void>): Promise<void> {
+async function run(operation: () => Promise<void>,
+                   describeError: (code: string, fallback: string) => string = reviewErrorText): Promise<void> {
   if (busy.value) return
   busy.value = true
   actionError.value = null
@@ -162,11 +185,59 @@ async function run(operation: () => Promise<void>): Promise<void> {
     await operation()
   } catch (cause) {
     actionError.value = cause instanceof ApiClientError
-      ? reviewErrorText(cause.code, cause.message)
+      ? describeError(cause.code, cause.message)
       : '操作失败，请稍后重试。'
   } finally {
     busy.value = false
   }
+}
+
+/** 毫秒 → 秒的输入值：去掉多余的 0，60_000 显示为 "60"、18_500 显示为 "18.5"。 */
+function seconds(ms: number): string {
+  return String(Number((ms / 1000).toFixed(3)))
+}
+
+const segmentDraft = computed<SegmentEditDraft>(() => ({
+  title: segmentTitle.value,
+  startMs: Math.round(Number(segmentStartSeconds.value) * 1000),
+  endMs: Math.round(Number(segmentEndSeconds.value) * 1000),
+}))
+
+const editingSegment = computed<DirectorySegment | null>(
+  () => segments.value.find(segment => segment.key === editingSegmentKey.value) ?? null)
+
+const segmentDraftValid = computed(() => segmentStartSeconds.value.trim() !== ''
+  && segmentEndSeconds.value.trim() !== ''
+  && Number.isFinite(Number(segmentStartSeconds.value))
+  && Number.isFinite(Number(segmentEndSeconds.value)))
+
+const segmentChanged = computed(() => {
+  const target = editingSegment.value
+  return target !== null && segmentDraftValid.value && segmentDraftChanged(target, segmentDraft.value)
+})
+
+function beginSegmentEdit(segment: DirectorySegment): void {
+  editingSegmentKey.value = segment.key
+  segmentTitle.value = segment.title
+  segmentStartSeconds.value = seconds(segment.range.startMs)
+  segmentEndSeconds.value = seconds(segment.range.endMs)
+  actionError.value = null
+}
+
+function cancelSegmentEdit(): void { editingSegmentKey.value = null }
+
+async function saveSegment(segment: DirectorySegment): Promise<void> {
+  const media = mediaId.value
+  const duration = mediaDurationMs.value
+  if (media === null || duration === null) return
+  if (!segmentDraftValid.value) { actionError.value = '请填写开始与结束时间（秒）。'; return }
+  // 前端只做提示，服务端会再强制一遍（绕过前端才是常态）。
+  const verdict = validateSegmentEdit(segments.value, segment.key, segmentDraft.value, duration)
+  if (!verdict.ok) { actionError.value = verdict.message; return }
+  await run(async () => {
+    directory.value = await saveSegmentOverride(media, segment.key, segmentDraft.value)
+    editingSegmentKey.value = null
+  }, segmentErrorText)
 }
 
 async function save(): Promise<void> {
@@ -232,14 +303,51 @@ async function confirm(): Promise<void> {
         <section class="segment-directory">
           <h2>片段目录</h2>
           <p v-if="segments.length === 0" class="state-note">这份报告没有可用的主题片段。</p>
-          <ul v-else class="segment-list">
-            <li v-for="segment in segments" :key="segment.key">
-              <span class="segment-order">{{ segmentLabel(segment) }}</span>
-              <span class="segment-title">{{ segment.title }}</span>
-              <span v-if="annotatedTopicIndexes.has(segment.index)" class="segment-annotated">已有复核结论</span>
-              <span v-if="overlapKeys.has(segment.key)" class="verdict-chip issue">区间与其他片段重叠</span>
-            </li>
-          </ul>
+          <template v-else>
+            <p v-if="canEditSegments" class="hint">
+              督导可修正片段的标题与起止边界。修正不改报告本体：报告仍是不可变事实，
+              教师读到的仍是冻结版本，每处修正都记录修改人、修订号与时间。
+            </p>
+            <ul class="segment-list">
+              <li v-for="segment in segments" :key="segment.key">
+                <div class="segment-row">
+                  <span class="segment-order">{{ segmentLabel(segment) }}</span>
+                  <span class="segment-title">{{ segment.title }}</span>
+                  <span v-if="segment.overridden" class="segment-annotated">
+                    已修正（原为「{{ segment.originalTitle }}」
+                    {{ formatMediaTime(segment.originalStartMs ?? 0) }} –
+                    {{ formatMediaTime(segment.originalEndMs ?? 0) }}）
+                  </span>
+                  <span v-if="annotatedTopicIndexes.has(segment.index)" class="segment-annotated">已有复核结论</span>
+                  <span v-if="overlapKeys.has(segment.key)" class="verdict-chip issue">区间与其他片段重叠</span>
+                  <button v-if="canEditSegments && editingSegmentKey !== segment.key" type="button"
+                          class="secondary" :disabled="busy" @click="beginSegmentEdit(segment)">修正片段</button>
+                </div>
+
+                <form v-if="editingSegmentKey === segment.key" class="annotation-form"
+                      @submit.prevent="saveSegment(segment)">
+                  <label>标题
+                    <input v-model="segmentTitle" maxlength="200"
+                           placeholder="例如：提问与追问环节" />
+                  </label>
+                  <label>开始（秒）
+                    <input v-model="segmentStartSeconds" type="number" min="0" step="0.1" />
+                  </label>
+                  <label>结束（秒）
+                    <input v-model="segmentEndSeconds" type="number" min="0" step="0.1" />
+                  </label>
+                  <p class="hint">
+                    课堂总时长 {{ formatMediaTime(mediaDurationMs ?? 0) }}；越界或与其他片段重叠会被服务端拒绝。
+                  </p>
+                  <div class="form-actions">
+                    <button type="submit" :disabled="busy || !segmentChanged">保存片段修正</button>
+                    <button type="button" class="secondary" :disabled="busy" @click="cancelSegmentEdit">取消</button>
+                    <span v-if="!segmentChanged" class="hint">标题或边界尚未改动。</span>
+                  </div>
+                </form>
+              </li>
+            </ul>
+          </template>
         </section>
 
         <div class="target-list">
