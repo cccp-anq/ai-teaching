@@ -644,8 +644,8 @@ class ClassroomAnalysisIntegrationTest {
                 .andExpect(jsonPath("$.annotations.length()").value(1))
                 .andExpect(jsonPath("$.annotations[0].note").value("环节划分过粗，建议按提问切分"));
 
-        // 复核草稿是督导的工作底稿，教师看不到
-        mvc.perform(get(reviewPath).session(login("teacher-a-test"))).andExpect(status().isForbidden());
+        // 复核草稿是督导的工作底稿：主任也读不到（夹具里 teacher-a-test 另持有督导范围，故选主任）
+        mvc.perform(get(reviewPath).session(login("director-a-test"))).andExpect(status().isForbidden());
 
         mvc.perform(post(reviewPath+"/confirm").with(csrf()).session(supervisor))
                 .andExpect(status().isOk())
@@ -707,7 +707,7 @@ class ClassroomAnalysisIntegrationTest {
                 .andExpect(jsonPath("$.code").value("REVIEW_TARGET_DUPLICATE"));
 
         mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"annotations\":[]}").with(csrf()).session(login("teacher-a-test")))
+                        .content("{\"annotations\":[]}").with(csrf()).session(login("director-a-test")))
                 .andExpect(status().isForbidden());
 
         mvc.perform(post(reviewPath+"/confirm").with(csrf())).andExpect(status().isUnauthorized());
