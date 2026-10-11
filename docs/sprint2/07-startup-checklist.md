@@ -30,7 +30,8 @@
 - [ ] 远程仓库：https://github.com/cccp-anq/ai-teaching（**私有**）
 - [ ] `main`＝Sprint 1 交付基线，已打标签 `sprint1-baseline`（提交 `37c29a3`）
 - [ ] `sprint2`＝本轮集成分支（当前工作分支）
-- [ ] 每个任务开功能分支：`sprint2/<任务号>-<简述>`，完成后合回 `sprint2`
+- [ ] 每个任务开功能分支：`feature/<故事号>-<简述>`，完成后合回 `sprint2`
+      （注意：git 的 ref 是层级结构，已存在 `sprint2` 分支时**不能**再创建 `sprint2/xxx`，故功能分支统一用 `feature/` 前缀）
 - [ ] 提交信息写清「故事编号 + 做了什么」，保证提交记录可追溯
 - [ ] AI 生成的代码合入前必须人工审查 diff，并在提交信息中注明审查人
 
