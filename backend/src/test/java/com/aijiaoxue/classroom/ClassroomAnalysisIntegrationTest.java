@@ -701,6 +701,27 @@ class ClassroomAnalysisIntegrationTest {
         mvc.perform(get("/api/v1/me/notifications")).andExpect(status().isUnauthorized());
     }
 
+    /**
+     * S2-02 的证据回看依赖 /class-sessions/media/{id}/content：授权读者可播（且支持 Range 区间请求），
+     * 不在该开课授权范围内的教师与匿名访问一律被拒。
+     */
+    @Test void s2evidenceMediaStreamRequiresOfferingVisibilityAndSupportsRange() throws Exception {
+        var prepared=preparedExternalRun("upload-evidence-0001","analysis-evidence-0001");
+        long mediaId=prepared.snapshot().input().mediaId();
+        String path="/api/v1/class-sessions/media/"+mediaId+"/content";
+
+        mvc.perform(get(path).session(login("teacher-a-test")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control","private, no-store"))
+                .andExpect(content().bytes(mp4().getBytes()));
+        mvc.perform(get(path).header("Range","bytes=4-7").session(login("teacher-a-test")))
+                .andExpect(status().isPartialContent())
+                .andExpect(header().string("Content-Range","bytes 4-7/16"))
+                .andExpect(content().bytes(new byte[]{'f','t','y','p'}));
+        mvc.perform(get(path).session(login("teacher-b-test"))).andExpect(status().isNotFound());
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+    }
+
     @Test void s2reviewRejectsUnannotatedUnattributedAndForeignRequests() throws Exception {
         long mediaId=mediaWithGeneratedReport("upload-review-0002","analysis-review-0002","provider-review-2");
         var supervisor=login("supervisor-a-test");
