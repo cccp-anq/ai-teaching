@@ -254,6 +254,9 @@ public class ClassroomAnalysisService {
         return new GeneratedReportProgress(reportProperties.ready()?"QUEUED":"PAUSED");
     }
 
+    /** Shared viewer gate for the report, review and confirmation read paths in this package. */
+    void requireGeneratedReportViewerFor(long mediaId) { requireGeneratedReportViewer(mediaId); }
+
     private void requireGeneratedReportViewer(long mediaId) {
         var user=currentUsers.requireCurrentUser();
         var access=repository.mediaAccess(mediaId);

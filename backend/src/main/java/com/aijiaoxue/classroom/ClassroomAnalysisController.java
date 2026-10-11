@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -20,7 +21,10 @@ import tools.jackson.databind.JsonNode;
 @RestController
 public class ClassroomAnalysisController {
     private final ClassroomAnalysisService service;
-    public ClassroomAnalysisController(ClassroomAnalysisService service) { this.service=service; }
+    private final ClassroomReportReviewService reviews;
+    public ClassroomAnalysisController(ClassroomAnalysisService service,ClassroomReportReviewService reviews) {
+        this.service=service; this.reviews=reviews;
+    }
 
     @PostMapping(value="/course-offerings/{offeringId}/class-sessions/video",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     ResponseEntity<ClassroomAnalysisView> upload(@PathVariable long offeringId,
@@ -43,6 +47,31 @@ public class ClassroomAnalysisController {
         var report=service.generatedReport(mediaId);
         return report==null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL,"private, no-store").build()
                 : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(report);
+    }
+    @GetMapping("/class-sessions/media/{mediaId}/generated-report/review")
+    ResponseEntity<ClassroomReportReview.Review> reportReview(@PathVariable long mediaId) {
+        var review=reviews.review(mediaId);
+        return review==null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL,"private, no-store").build()
+                : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(review);
+    }
+    @PutMapping(value="/class-sessions/media/{mediaId}/generated-report/review",
+            consumes=MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<ClassroomReportReview.Review> saveReportReview(@PathVariable long mediaId,
+            @RequestBody ReviewAnnotations body) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
+                .body(reviews.save(mediaId,body.annotations()));
+    }
+    record ReviewAnnotations(List<ClassroomReportReview.Annotation> annotations) {}
+    @PostMapping("/class-sessions/media/{mediaId}/generated-report/review/confirm")
+    ResponseEntity<ClassroomReportReview.Review> confirmReportReview(@PathVariable long mediaId) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
+                .body(reviews.confirm(mediaId));
+    }
+    @GetMapping("/class-sessions/media/{mediaId}/confirmed-report")
+    ResponseEntity<JsonNode> confirmedReport(@PathVariable long mediaId) {
+        var confirmed=reviews.confirmedReport(mediaId);
+        return confirmed==null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL,"private, no-store").build()
+                : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(confirmed);
     }
     @GetMapping("/class-sessions/media/{mediaId}/action-suggestions")
     ResponseEntity<ClassroomActionSuggestions.Result> actionSuggestions(@PathVariable long mediaId) {

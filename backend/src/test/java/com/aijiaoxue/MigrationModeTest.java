@@ -17,7 +17,7 @@ class MigrationModeTest {
 
     @Test void migrationOnlyStartsWithoutServletSecurityAndDoesNotReapplyVersions() {
         assertTrue(context.getBeansOfType(SecurityFilterChain.class).isEmpty());
-        assertEquals("21", flyway.info().current().getVersion().toString());
+        assertEquals("22", flyway.info().current().getVersion().toString());
         assertEquals(0, flyway.migrate().migrationsExecuted);
         assertEquals(0, flyway.info().pending().length);
     }
