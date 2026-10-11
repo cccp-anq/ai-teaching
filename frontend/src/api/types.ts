@@ -381,3 +381,54 @@ export interface TeacherAction {
   createdAt: string
   updatedAt: string
 }
+
+// ---- Sprint 2 supervisor report review (S2-03/S2-04) ------------------------
+
+export type AnnotationTargetKind = 'TOPIC' | 'CHANGE' | 'INTERPRETATION'
+
+/** ISSUE = 认定 AI 结论有问题；ACKNOWLEDGED = 认可该结论。 */
+export type AnnotationVerdict = 'ISSUE' | 'ACKNOWLEDGED'
+
+export interface ReviewAnnotation {
+  targetKind: AnnotationTargetKind
+  targetIndex: number
+  verdict: AnnotationVerdict
+  /** 必填的复核说明；空白说明不允许提交（服务端同样校验）。 */
+  note: string
+}
+
+export interface ClassroomReportReview {
+  reviewId: number
+  reportId: number
+  mediaId: number
+  confirmed: boolean
+  confirmedAt: string | null
+  revision: number
+  annotations: ReviewAnnotation[]
+}
+
+/** 保存草稿的请求体。 */
+export interface SupervisorReviewDraft {
+  annotations: ReviewAnnotation[]
+}
+
+/** 已确认的冻结快照：教师读到的就是这份内容，后续 AI 重算不会改变它。 */
+export interface ConfirmedReportSnapshot {
+  reportId: number
+  report: GeneratedClassroomReport
+  annotations: ReviewAnnotation[]
+}
+
+// ---- Sprint 2 teacher notification (S2-05) ----------------------------------
+
+export type TeacherNotificationKind = 'REPORT_PUBLISHED'
+export type TeacherNotificationState = 'UNREAD' | 'READ'
+
+export interface TeacherNotification {
+  notificationId: number
+  mediaId: number
+  kind: TeacherNotificationKind
+  state: TeacherNotificationState
+  createdAt: string
+  readAt: string | null
+}

@@ -17,6 +17,9 @@ const roleLabel = computed(() => currentUser.value?.roles.map(role => ROLE_LABEL
 const canImport = computed(() => currentUser.value?.roles.includes('ADMIN') ?? false)
 const hasPersonalSchedule = computed(() => currentUser.value?.roles.some(role => role === 'TEACHER' || role === 'SUPERVISOR') ?? false)
 const hasOwnActions = computed(() => currentUser.value?.roles.includes('TEACHER') ?? false)
+// 「报告复核」只对教学督导开放；入口不带 mediaId，落到 /reports/review 的指路提示页，
+// 真正的复核页需要从某节课进入（复核对象是具体课堂，不是全局列表）。
+const canReviewReports = computed(() => currentUser.value?.roles.includes('SUPERVISOR') ?? false)
 const canCompare = computed(() => currentUser.value?.roles.some(role => role === 'ADMIN' || role === 'DIRECTOR') ?? false)
 const canSeeCoverage = computed(() => currentUser.value?.roles.some(role => role === 'ADMIN' || role === 'DIRECTOR' || role === 'SUPERVISOR') ?? false)
 const userInitial = computed(() => currentUser.value?.username.trim().charAt(0).toUpperCase() || '访')
@@ -82,6 +85,7 @@ async function signOut(): Promise<void> {
         <p class="nav-label">我的工作</p>
         <RouterLink to="/my-schedule"><span class="nav-icon" aria-hidden="true">日</span>我的课表</RouterLink>
         <RouterLink v-if="hasOwnActions" to="/my-actions"><span class="nav-icon" aria-hidden="true">行</span>我的行动</RouterLink>
+        <RouterLink v-if="canReviewReports" to="/reports/review"><span class="nav-icon" aria-hidden="true">核</span>报告复核</RouterLink>
       </template>
       <p class="nav-label">课程信息</p>
       <RouterLink to="/offerings"><span class="nav-icon" aria-hidden="true">查</span>授权开课查询</RouterLink>

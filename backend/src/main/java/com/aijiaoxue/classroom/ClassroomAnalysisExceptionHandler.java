@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 
-@RestControllerAdvice(assignableTypes=ClassroomAnalysisController.class)
+@RestControllerAdvice(assignableTypes={ClassroomAnalysisController.class,TeacherNotificationController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ClassroomAnalysisExceptionHandler {
     @ExceptionHandler(ClassroomAnalysisException.class)

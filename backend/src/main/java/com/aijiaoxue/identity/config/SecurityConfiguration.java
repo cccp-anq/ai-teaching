@@ -37,6 +37,8 @@ public class SecurityConfiguration {
                 // requires an authenticated caller, and a foreign identifier is answered as not-found.
                 .requestMatchers("/api/v1/teacher-actions", "/api/v1/teacher-actions/*",
                         "/api/v1/teacher-actions/*/status").authenticated()
+                // S2-05 notifications are always the caller's own; ownership is enforced in the service.
+                .requestMatchers("/api/v1/me/notifications", "/api/v1/me/notifications/*/read").authenticated()
                 .anyRequest().denyAll())
             .requestCache(c -> c.disable())
             .sessionManagement(s -> s.sessionFixation(f -> f.changeSessionId()))
