@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchGeneratedClassroomReport } from '../api/classroom'
+import { findOverlaps, segmentDirectory, segmentLabel } from '../lib/segmentDirectory'
 import { ApiClientError } from '../api/client'
 import {
   canConfirmReview, confirmReportReview, fetchReportReview, reviewErrorText, saveReportReview,
@@ -50,6 +51,15 @@ interface ReviewTarget {
   body: string
   evidenceCount: number
 }
+
+// S2-01 片段目录：按时间排序呈现报告片段，并标出已复核与区间重叠，便于快速选择复核内容。
+const segments = computed(() => segmentDirectory(report.value))
+const overlapKeys = computed(() => new Set(
+  findOverlaps(segments.value).flatMap(pair => [pair.left.key, pair.right.key])))
+const annotatedTopicIndexes = computed(() => new Set(
+  (confirmed.value ? review.value?.annotations ?? [] : drafts.value)
+    .filter(item => item.targetKind === 'TOPIC')
+    .map(item => item.targetIndex)))
 
 const targets = computed<ReviewTarget[]>(() => {
   const value = report.value
@@ -218,6 +228,19 @@ async function confirm(): Promise<void> {
           已标注 {{ summary.total }} 条：认定有问题 {{ summary.issues }} 条 · 认可 {{ summary.acknowledged }} 条
         </p>
         <p v-if="actionError !== null" class="form-error" role="alert">{{ actionError }}</p>
+
+        <section class="segment-directory">
+          <h2>片段目录</h2>
+          <p v-if="segments.length === 0" class="state-note">这份报告没有可用的主题片段。</p>
+          <ul v-else class="segment-list">
+            <li v-for="segment in segments" :key="segment.key">
+              <span class="segment-order">{{ segmentLabel(segment) }}</span>
+              <span class="segment-title">{{ segment.title }}</span>
+              <span v-if="annotatedTopicIndexes.has(segment.index)" class="segment-annotated">已有复核结论</span>
+              <span v-if="overlapKeys.has(segment.key)" class="verdict-chip issue">区间与其他片段重叠</span>
+            </li>
+          </ul>
+        </section>
 
         <div class="target-list">
           <article v-for="target in targets" :key="keyOf(target.kind, target.index)" class="target-card">
