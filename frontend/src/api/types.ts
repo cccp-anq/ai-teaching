@@ -342,3 +342,42 @@ export interface ClassroomAnalysis {
   createdAt: string
   media: ClassroomMedia[]
 }
+
+// ---- Sprint 2 teacher action chain (S2-06/07/08/09/14) ----------------------
+
+export interface ActionSuggestionEvidence {
+  itemType: 'SEGMENT' | 'WINDOW'
+  itemId: string
+}
+
+export interface ActionSuggestion {
+  index: number
+  hypothesis: string | null
+  alternatives: string[]
+  suggestion: string
+  evidence: ActionSuggestionEvidence[]
+}
+
+/** Present exactly when suggestions cannot be offered, so the teacher sees why (S2-13). */
+export type ActionSuggestionReason = 'REPORT_NOT_READY' | 'NO_INTERPRETATIONS'
+
+export interface ClassroomActionSuggestionResult {
+  available: boolean
+  reasonCode: ActionSuggestionReason | null
+  suggestions: ActionSuggestion[]
+}
+
+export type TeacherActionStatus = 'PLANNED' | 'ACTIVE' | 'DONE' | 'ABANDONED'
+
+export interface TeacherAction {
+  actionId: number
+  mediaId: number | null
+  sourceKind: 'SUGGESTION' | 'MANUAL'
+  sourceIndex: number | null
+  title: string
+  content: string
+  status: TeacherActionStatus
+  revision: number
+  createdAt: string
+  updatedAt: string
+}

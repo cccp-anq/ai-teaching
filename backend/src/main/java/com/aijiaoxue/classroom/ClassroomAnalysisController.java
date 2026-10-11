@@ -44,6 +44,11 @@ public class ClassroomAnalysisController {
         return report==null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL,"private, no-store").build()
                 : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(report);
     }
+    @GetMapping("/class-sessions/media/{mediaId}/action-suggestions")
+    ResponseEntity<ClassroomActionSuggestions.Result> actionSuggestions(@PathVariable long mediaId) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
+                .body(service.actionSuggestions(mediaId));
+    }
     @GetMapping("/class-sessions/media/{mediaId}/generated-report/versions")
     ResponseEntity<ClassroomAnalysisService.GeneratedReportVersions> generatedReportVersions(
             @PathVariable long mediaId,@RequestParam(defaultValue="0") int page) {

@@ -14,6 +14,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/classrooms/:classSessionId', name: 'classroom-analysis', component: () => import('../views/ClassroomAnalysisView.vue'), meta: { requiresAuth: true } },
   { path: '/comparison', name: 'comparison', component: () => import('../views/ComparisonView.vue'), meta: { requiresAuth: true } },
   { path: '/my-schedule', name: 'my-schedule', component: () => import('../views/MyScheduleView.vue'), meta: { requiresAuth: true } },
+  { path: '/my-actions', name: 'my-actions', component: () => import('../views/MyActionsView.vue'), meta: { requiresAuth: true } },
   { path: '/my-courses', redirect: '/my-schedule' },
   { path: '/supervision/coverage', name: 'coverage', component: () => import('../views/CoverageView.vue'), meta: { requiresAuth: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue') },

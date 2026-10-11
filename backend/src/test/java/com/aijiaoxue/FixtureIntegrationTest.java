@@ -51,8 +51,8 @@ class FixtureIntegrationTest {
     }
 
     @Test void initializationAndUnchangedMigrationAreRepeatable() throws Exception {
-        assertEquals(21,initialMigrations); // Production V1..V20 plus explicitly registered repeatable seed.
-        assertEquals("20",migration(true).info().current().getVersion().toString());
+        assertEquals(22,initialMigrations); // Production V1..V21 plus explicitly registered repeatable seed.
+        assertEquals("21",migration(true).info().current().getVersion().toString());
         var before=snapshot();
         assertEquals(0,migration(true).migrate().migrationsExecuted);
         migration(true).validate();

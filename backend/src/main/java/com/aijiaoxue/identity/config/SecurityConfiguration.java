@@ -33,6 +33,10 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.GET, "/api/v1/lookups/semesters", "/api/v1/lookups/colleges", "/api/v1/lookups/owner-colleges", "/api/v1/lookups/teachers").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/imports/timetable", "/api/v1/imports/supervision-evaluations").authenticated()
                 .requestMatchers("/api/v1/course-offerings/*/class-sessions/**", "/api/v1/class-sessions/**").authenticated()
+                // Sprint 2 teacher actions stay owner-scoped inside the service; the security layer only
+                // requires an authenticated caller, and a foreign identifier is answered as not-found.
+                .requestMatchers("/api/v1/teacher-actions", "/api/v1/teacher-actions/*",
+                        "/api/v1/teacher-actions/*/status").authenticated()
                 .anyRequest().denyAll())
             .requestCache(c -> c.disable())
             .sessionManagement(s -> s.sessionFixation(f -> f.changeSessionId()))

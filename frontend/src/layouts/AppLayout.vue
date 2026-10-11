@@ -16,6 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
 const roleLabel = computed(() => currentUser.value?.roles.map(role => ROLE_LABELS[role] ?? role).join('、') || MISSING)
 const canImport = computed(() => currentUser.value?.roles.includes('ADMIN') ?? false)
 const hasPersonalSchedule = computed(() => currentUser.value?.roles.some(role => role === 'TEACHER' || role === 'SUPERVISOR') ?? false)
+const hasOwnActions = computed(() => currentUser.value?.roles.includes('TEACHER') ?? false)
 const canCompare = computed(() => currentUser.value?.roles.some(role => role === 'ADMIN' || role === 'DIRECTOR') ?? false)
 const canSeeCoverage = computed(() => currentUser.value?.roles.some(role => role === 'ADMIN' || role === 'DIRECTOR' || role === 'SUPERVISOR') ?? false)
 const userInitial = computed(() => currentUser.value?.username.trim().charAt(0).toUpperCase() || '访')
@@ -80,6 +81,7 @@ async function signOut(): Promise<void> {
       <template v-if="hasPersonalSchedule">
         <p class="nav-label">我的工作</p>
         <RouterLink to="/my-schedule"><span class="nav-icon" aria-hidden="true">日</span>我的课表</RouterLink>
+        <RouterLink v-if="hasOwnActions" to="/my-actions"><span class="nav-icon" aria-hidden="true">行</span>我的行动</RouterLink>
       </template>
       <p class="nav-label">课程信息</p>
       <RouterLink to="/offerings"><span class="nav-icon" aria-hidden="true">查</span>授权开课查询</RouterLink>

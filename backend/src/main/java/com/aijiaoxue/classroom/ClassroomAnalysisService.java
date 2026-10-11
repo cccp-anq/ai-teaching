@@ -220,6 +220,19 @@ public class ClassroomAnalysisService {
                 .toList(),versions.nextPage());
     }
 
+    /** S2-06/S2-07/S2-13: the teacher's action suggestions, or the reason they are unavailable. */
+    @Transactional(readOnly=true)
+    public ClassroomActionSuggestions.Result actionSuggestions(long mediaId) {
+        requireGeneratedReportViewer(mediaId);
+        var stored=generatedReports.visibleForMedia(mediaId);
+        if(stored==null) return new ClassroomActionSuggestions.Result(false,
+                ClassroomActionSuggestions.REASON_REPORT_NOT_READY,List.of());
+        try {
+            return ClassroomActionSuggestions.fromReport(json.readTree(stored.normalizedJson()));
+        }
+        catch(Exception failure) { throw new IllegalStateException("Stored generated report is invalid",failure); }
+    }
+
     public record GeneratedReportVersion(long reportId,java.time.LocalDateTime generatedAt,boolean current) {}
     public record GeneratedReportVersions(List<GeneratedReportVersion> items,Integer nextPage) {}
 
