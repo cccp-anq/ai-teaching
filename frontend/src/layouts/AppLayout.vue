@@ -85,6 +85,7 @@ async function signOut(): Promise<void> {
         <p class="nav-label">我的工作</p>
         <RouterLink to="/my-schedule"><span class="nav-icon" aria-hidden="true">日</span>我的课表</RouterLink>
         <RouterLink v-if="hasOwnActions" to="/my-actions"><span class="nav-icon" aria-hidden="true">行</span>我的行动</RouterLink>
+        <RouterLink v-if="hasOwnActions" to="/my-feedback"><span class="nav-icon" aria-hidden="true">馈</span>我的反馈</RouterLink>
         <RouterLink v-if="canReviewReports" to="/reports/review"><span class="nav-icon" aria-hidden="true">核</span>报告复核</RouterLink>
       </template>
       <p class="nav-label">课程信息</p>

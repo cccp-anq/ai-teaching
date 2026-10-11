@@ -17,6 +17,8 @@ export const routes: RouteRecordRaw[] = [
   { path: '/comparison', name: 'comparison', component: () => import('../views/ComparisonView.vue'), meta: { requiresAuth: true } },
   { path: '/my-schedule', name: 'my-schedule', component: () => import('../views/MyScheduleView.vue'), meta: { requiresAuth: true } },
   { path: '/my-actions', name: 'my-actions', component: () => import('../views/MyActionsView.vue'), meta: { requiresAuth: true } },
+  // S2-12 教师查看正式复核与片段；S2-05 的通知入口也在这里闭环。
+  { path: '/my-feedback', name: 'my-feedback', component: () => import('../views/MyFeedbackView.vue'), meta: { requiresAuth: true } },
   { path: '/my-courses', redirect: '/my-schedule' },
   { path: '/supervision/coverage', name: 'coverage', component: () => import('../views/CoverageView.vue'), meta: { requiresAuth: true } },
   // 复核必须绑定一节课：带 mediaId 的是复核页本身，不带 mediaId 的入口页只做指路提示。
