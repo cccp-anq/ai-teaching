@@ -25,13 +25,22 @@ public final class ClassroomActionSuggestions {
     public record Suggestion(int index, String hypothesis, List<String> alternatives, String suggestion,
                              List<Evidence> evidence) {}
 
-    public record Result(boolean available, String reasonCode, List<Suggestion> suggestions) {}
+    public record Result(boolean available, String reasonCode, List<Suggestion> suggestions,
+                         Long classSessionId) {
+        /**
+         * 建议本身不携带媒体上下文（它只来自报告 JSON）。服务层在返回前补上 classSessionId，
+         * 教师端才能从一条建议跳到证据回看页并按证据定位（S2-11）。
+         */
+        Result withClassSession(Long classSessionId) {
+            return new Result(available, reasonCode, suggestions, classSessionId);
+        }
+    }
 
     public static Result fromReport(JsonNode report) {
-        if (report == null || !report.isObject()) return new Result(false, REASON_REPORT_NOT_READY, List.of());
+        if (report == null || !report.isObject()) return new Result(false, REASON_REPORT_NOT_READY, List.of(), null);
         JsonNode interpretations = report.get("interpretations");
         if (interpretations == null || !interpretations.isArray() || interpretations.size() == 0)
-            return new Result(false, REASON_NO_INTERPRETATIONS, List.of());
+            return new Result(false, REASON_NO_INTERPRETATIONS, List.of(), null);
         List<Suggestion> suggestions = new ArrayList<>();
         for (int index = 0; index < interpretations.size(); index++) {
             JsonNode entry = interpretations.get(index);
@@ -41,8 +50,8 @@ public final class ClassroomActionSuggestions {
             suggestions.add(new Suggestion(index, text(entry, "hypothesis"), alternatives(entry), suggestion,
                     evidence(entry)));
         }
-        if (suggestions.isEmpty()) return new Result(false, REASON_NO_INTERPRETATIONS, List.of());
-        return new Result(true, null, List.copyOf(suggestions));
+        if (suggestions.isEmpty()) return new Result(false, REASON_NO_INTERPRETATIONS, List.of(), null);
+        return new Result(true, null, List.copyOf(suggestions), null);
     }
 
     private static String text(JsonNode node, String field) {

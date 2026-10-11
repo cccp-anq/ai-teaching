@@ -225,12 +225,15 @@ public class ClassroomAnalysisService {
     public ClassroomActionSuggestions.Result actionSuggestions(long mediaId) {
         requireGeneratedReportViewer(mediaId);
         var stored=generatedReports.visibleForMedia(mediaId);
-        if(stored==null) return new ClassroomActionSuggestions.Result(false,
-                ClassroomActionSuggestions.REASON_REPORT_NOT_READY,List.of());
-        try {
-            return ClassroomActionSuggestions.fromReport(json.readTree(stored.normalizedJson()));
+        ClassroomActionSuggestions.Result result;
+        if(stored==null) result=new ClassroomActionSuggestions.Result(false,
+                ClassroomActionSuggestions.REASON_REPORT_NOT_READY,List.of(),null);
+        else try {
+            result=ClassroomActionSuggestions.fromReport(json.readTree(stored.normalizedJson()));
         }
         catch(Exception failure) { throw new IllegalStateException("Stored generated report is invalid",failure); }
+        // S2-11：把 classSessionId 一并返回，教师端才能从一条建议跳到证据回看页定位并播放证据。
+        return result.withClassSession(repository.classSessionIdOf(mediaId));
     }
 
     public record GeneratedReportVersion(long reportId,java.time.LocalDateTime generatedAt,boolean current) {}
