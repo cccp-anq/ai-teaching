@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "req-head-up-ratio-001",
+  "jobId": "job-head-up-ratio-001",
+  "moduleType": "HEAD_UP",
+  "providerId": "head-up-demo",
+  "moduleVersion": "demo-1.0",
+  "classSessionId": "session-demo-001",
+  "mediaId": "media-demo-001",
+  "mediaSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "durationMs": 60000,
+  "timeBase": "MEDIA_START_MS",
+  "analysisRange": {
+    "startMs": 0,
+    "endMs": 60000
+  },
+  "status": "SUCCEEDED",
+  "revision": 1,
+  "createdAt": "2026-09-13T03:00:00Z",
+  "updatedAt": "2026-09-13T03:01:00Z",
+  "payload": {
+    "definitionId": "head-up-demo-v1",
+    "denominatorDefinition": "合成样例：代表帧内可判断抬头状态的可观测人数，非应到或实到人数",
+    "sampleMode": "REPRESENTATIVE_FRAME",
+    "valueMode": "RATIO_ONLY",
+    "windowMs": 10000,
+    "processedRanges": [
+      {
+        "startMs": 0,
+        "endMs": 60000
+      }
+    ],
+    "windows": [
+      {
+        "id": "win-001",
+        "startMs": 0,
+        "endMs": 10000,
+        "sampleAtMs": 5000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": 0.75
+      },
+      {
+        "id": "win-002",
+        "startMs": 10000,
+        "endMs": 20000,
+        "sampleAtMs": 15000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": 0.6
+      },
+      {
+        "id": "win-003",
+        "startMs": 20000,
+        "endMs": 30000,
+        "sampleAtMs": 25000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": 0.0
+      },
+      {
+        "id": "win-004",
+        "startMs": 30000,
+        "endMs": 40000,
+        "sampleAtMs": 35000,
+        "quality": "NO_SUBJECTS",
+        "qualityReason": "NO_OBSERVABLE_SUBJECTS",
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-005",
+        "startMs": 40000,
+        "endMs": 50000,
+        "sampleAtMs": null,
+        "quality": "LOW_QUALITY",
+        "qualityReason": "OCCLUDED",
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-006",
+        "startMs": 50000,
+        "endMs": 60000,
+        "sampleAtMs": 55000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": null,
+        "validObservedCount": null,
+        "headUpRatio": 0.5
+      }
+    ],
+    "warnings": []
+  },
+  "error": null
+}

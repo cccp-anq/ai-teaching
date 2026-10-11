@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijiaoxue.supervision.coverage.SupervisionCoverageMapper">
+
+    <sql id="coverageFilters">
+        <if test="semesterId != null">AND o.semester_id=#{semesterId}</if>
+        <if test="ownerCollegeId != null">AND c.owner_college_id=#{ownerCollegeId}</if>
+    </sql>
+
+    <!-- The one and only covered predicate: at least one COMPLETED evaluation record. -->
+    <sql id="coveredPredicate">
+        EXISTS (SELECT 1 FROM supervision_evaluation se
+                WHERE se.course_offering_id=o.id AND se.status='COMPLETED')
+    </sql>
+
+    <select id="countEligible" resultType="long">
+        SELECT COUNT(*)
+        FROM course_offering o
+        LEFT JOIN course c ON c.id=o.course_id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        <include refid="coverageFilters"/>
+    </select>
+
+    <select id="selectSnapshot" resultType="com.aijiaoxue.supervision.coverage.CoverageSnapshotRow">
+        SELECT o.id AS offeringId,
+               o.display_name AS displayName,
+               sem.semester_code AS semesterCode,
+               sem.semester_name AS semesterName,
+               o.student_count AS studentCount,
+               c.owner_college_id AS ownerCollegeId,
+               CASE WHEN (<include refid="coveredPredicate"/>) THEN TRUE ELSE FALSE END AS covered
+        FROM course_offering o
+        LEFT JOIN course c ON c.id=o.course_id
+        JOIN semester sem ON sem.id=o.semester_id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        <include refid="coverageFilters"/>
+        ORDER BY o.display_name, o.id
+    </select>
+
+    <select id="countCovered" resultType="long">
+        SELECT COUNT(*)
+        FROM course_offering o
+        LEFT JOIN course c ON c.id=o.course_id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        <include refid="coverageFilters"/>
+        AND (<include refid="coveredPredicate"/>)
+    </select>
+
+    <select id="selectDrilldown" resultType="com.aijiaoxue.supervision.coverage.CoverageOfferingRow">
+        SELECT o.id AS offeringId,
+               o.display_name AS displayName,
+               sem.semester_code AS semesterCode,
+               sem.semester_name AS semesterName,
+               o.student_count AS studentCount,
+               c.owner_college_id AS ownerCollegeId
+        FROM course_offering o
+        LEFT JOIN course c ON c.id=o.course_id
+        JOIN semester sem ON sem.id=o.semester_id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        <include refid="coverageFilters"/>
+        <choose>
+            <when test="covered">AND (<include refid="coveredPredicate"/>)</when>
+            <otherwise>AND NOT (<include refid="coveredPredicate"/>)</otherwise>
+        </choose>
+        ORDER BY o.display_name, o.id
+    </select>
+
+</mapper>

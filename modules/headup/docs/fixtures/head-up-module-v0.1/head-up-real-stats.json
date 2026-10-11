@@ -1,0 +1,16 @@
+{
+  "statisticsVersion": "stats-v1",
+  "durationMs": 20000,
+  "headUp": {
+    "processedDurationMs": 20000,
+    "processedCoverage": 1.0,
+    "validDurationMs": 0,
+    "validCoverage": 0.0,
+    "meanRate": null,
+    "windowRates": [
+      null,
+      null
+    ],
+    "changes": []
+  }
+}

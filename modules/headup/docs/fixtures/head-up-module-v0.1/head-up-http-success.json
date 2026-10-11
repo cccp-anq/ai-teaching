@@ -1,0 +1,62 @@
+{
+  "analysisRange": {
+    "endMs": 20000,
+    "startMs": 0
+  },
+  "classSessionId": "session-headup-fixture-001",
+  "clientRequestId": "req-head-up-real-001",
+  "createdAt": "2026-09-14T13:49:18Z",
+  "durationMs": 20000,
+  "error": null,
+  "jobId": "job-head-up-ea82ce53e4024cbbaa6b",
+  "mediaId": "media-headup-fixture-001",
+  "mediaSha256": "a6a3f7988b254d8943e95f495c6ca53ca0e09060df4eeb402cd29e5a18a137c9",
+  "moduleType": "HEAD_UP",
+  "moduleVersion": "head-up-0.1.0",
+  "payload": {
+    "definitionId": "head-up-qwen-vl-v1",
+    "denominatorDefinition": "代表帧内可判断抬头状态的可观测人数（head_up + head_down）；侧背对镜头、被遮挡、画面过糊等无法判断者不计入；不等于班级应到人数或实到人数，也不用于出席率",
+    "processedRanges": [
+      {
+        "endMs": 20000,
+        "startMs": 0
+      }
+    ],
+    "sampleMode": "REPRESENTATIVE_FRAME",
+    "valueMode": "COUNTS",
+    "warnings": [
+      "NO_SUBJECTS"
+    ],
+    "windowMs": 10000,
+    "windows": [
+      {
+        "endMs": 10000,
+        "headUpCount": 0,
+        "headUpRatio": null,
+        "id": "win-001",
+        "quality": "NO_SUBJECTS",
+        "qualityReason": "NO_OBSERVABLE_SUBJECTS",
+        "sampleAtMs": 5000,
+        "startMs": 0,
+        "validObservedCount": 0
+      },
+      {
+        "endMs": 20000,
+        "headUpCount": 0,
+        "headUpRatio": null,
+        "id": "win-002",
+        "quality": "NO_SUBJECTS",
+        "qualityReason": "NO_OBSERVABLE_SUBJECTS",
+        "sampleAtMs": 15000,
+        "startMs": 10000,
+        "validObservedCount": 0
+      }
+    ]
+  },
+  "providerId": "head-up-local",
+  "revision": 1,
+  "schemaVersion": "1.0",
+  "status": "SUCCEEDED",
+  "timeBase": "MEDIA_START_MS",
+  "updatedAt": "2026-09-14T13:49:19Z"
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "req-head-up-realclassroom-001",
+  "jobId": "job-head-up-realclassroom-001",
+  "moduleType": "HEAD_UP",
+  "providerId": "head-up-local",
+  "moduleVersion": "head-up-0.1.0",
+  "classSessionId": "session-realclassroom-001",
+  "mediaId": "media-realclassroom-001",
+  "mediaSha256": "ee34c8c0b2c7e027ae05ef864de05e3e9c520af7bb0b3031d24a5142066faf06",
+  "durationMs": 50000,
+  "timeBase": "MEDIA_START_MS",
+  "analysisRange": {
+    "startMs": 0,
+    "endMs": 50000
+  },
+  "status": "SUCCEEDED",
+  "revision": 1,
+  "createdAt": "2026-09-14T14:24:42Z",
+  "updatedAt": "2026-09-14T14:24:42Z",
+  "payload": {
+    "definitionId": "head-up-qwen-vl-v1",
+    "denominatorDefinition": "代表帧内可判断抬头状态的可观测人数（head_up + head_down）；侧背对镜头、被遮挡、画面过糊等无法判断者不计入；不等于班级应到人数或实到人数，也不用于出席率",
+    "sampleMode": "REPRESENTATIVE_FRAME",
+    "valueMode": "COUNTS",
+    "windowMs": 10000,
+    "processedRanges": [
+      {
+        "startMs": 0,
+        "endMs": 50000
+      }
+    ],
+    "windows": [
+      {
+        "id": "win-001",
+        "startMs": 0,
+        "endMs": 10000,
+        "sampleAtMs": 5000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": 5,
+        "validObservedCount": 7,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-002",
+        "startMs": 10000,
+        "endMs": 20000,
+        "sampleAtMs": 15000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": 6,
+        "validObservedCount": 8,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-003",
+        "startMs": 20000,
+        "endMs": 30000,
+        "sampleAtMs": 25000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": 18,
+        "validObservedCount": 18,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-004",
+        "startMs": 30000,
+        "endMs": 40000,
+        "sampleAtMs": 35000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": 7,
+        "validObservedCount": 9,
+        "headUpRatio": null
+      },
+      {
+        "id": "win-005",
+        "startMs": 40000,
+        "endMs": 50000,
+        "sampleAtMs": 45000,
+        "quality": "VALID",
+        "qualityReason": null,
+        "headUpCount": 1,
+        "validObservedCount": 3,
+        "headUpRatio": null
+      }
+    ],
+    "warnings": []
+  },
+  "error": null
+}

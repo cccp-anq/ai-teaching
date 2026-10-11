@@ -1,0 +1,570 @@
+{
+  "timestamp": "2026-08-30 00:00:00",
+  "namespace": "PHASE1-ACCEPTANCE",
+  "authentication": {
+    "testPasswordHash": "$2a$12$oASABnNK5f.hfVbRgoYd3OaOtuNbxUiJ9LpGXD6oQ3gt0RtXchqlC"
+  },
+  "colleges": [
+    {
+      "id": 1,
+      "code": "TEST-SOFTWARE",
+      "name": "软件学院（匿名测试范围）"
+    },
+    {
+      "id": 2,
+      "code": "TEST-SCOPE-B",
+      "name": "人工测试学院B"
+    }
+  ],
+  "semesters": [
+    {
+      "id": 1,
+      "code": "2026-FALL",
+      "name": "2026秋",
+      "firstWeek": "2026-08-30"
+    },
+    {
+      "id": 2,
+      "code": "TEST-TERM-B",
+      "name": "人工测试学期B",
+      "firstWeek": null
+    }
+  ],
+  "teachers": [
+    {
+      "id": 1,
+      "name": "Teacher Alpha"
+    },
+    {
+      "id": 2,
+      "name": "Teacher Beta"
+    },
+    {
+      "id": 3,
+      "name": "Teacher Gamma"
+    },
+    {
+      "id": 4,
+      "name": "Teacher Delta"
+    },
+    {
+      "id": 5,
+      "name": "Teacher Epsilon"
+    }
+  ],
+  "locations": [
+    {
+      "id": 1,
+      "name": "测试地点A",
+      "group": "测试楼A",
+      "type": "PHYSICAL"
+    },
+    {
+      "id": 2,
+      "name": "测试地点B",
+      "group": "测试楼B",
+      "type": "PHYSICAL"
+    },
+    {
+      "id": 3,
+      "name": "线上",
+      "group": "线上",
+      "type": "ONLINE"
+    },
+    {
+      "id": 4,
+      "name": "待定",
+      "group": "其它",
+      "type": "TBD"
+    }
+  ],
+  "courses": [
+    {
+      "id": 201,
+      "name": "测试课程主体A",
+      "college": 1,
+      "syllabus": "fixture:syllabus-present",
+      "description": "匿名测试课程简介：面向本科生的程序设计基础课程，覆盖数据结构、算法与工程实践入门。"
+    },
+    {
+      "id": 202,
+      "name": "测试课程主体B",
+      "college": 2,
+      "syllabus": null
+    }
+  ],
+  "offerings": [
+    {
+      "id": 101,
+      "name": "普通本科-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": 201,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试软件2401-03,测试软件2404",
+      "students": 40
+    },
+    {
+      "id": 102,
+      "name": "共同授课-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试共授班",
+      "students": 32
+    },
+    {
+      "id": 103,
+      "name": "分周换教师-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试换教师班",
+      "students": 36
+    },
+    {
+      "id": 104,
+      "name": "AC-03时间地点-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试AC03班",
+      "students": 30
+    },
+    {
+      "id": 105,
+      "name": "离散周次-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试周次班",
+      "students": 28
+    },
+    {
+      "id": 106,
+      "name": "零人数-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试零值班",
+      "students": 0
+    },
+    {
+      "id": 107,
+      "name": "混合地点-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试混合班",
+      "students": 24
+    },
+    {
+      "id": 108,
+      "name": "数据结构实验-测试活动",
+      "type": "PRACTICE",
+      "course": null,
+      "semester": 1,
+      "college": 1,
+      "classes": "测试实践班",
+      "students": 16
+    },
+    {
+      "id": 109,
+      "name": "人工范围B-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": 202,
+      "semester": 1,
+      "college": 2,
+      "classes": "测试范围B班",
+      "students": 20
+    },
+    {
+      "id": 110,
+      "name": "人工学期B-测试",
+      "type": "UNDERGRAD_COURSE",
+      "course": 201,
+      "semester": 2,
+      "college": 1,
+      "classes": "测试学期B班",
+      "students": 22
+    }
+  ],
+  "schedules": [
+    {
+      "id": 1001,
+      "offering": 101,
+      "day": 2,
+      "start": 1,
+      "end": 2,
+      "location": 1,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        1
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1002,
+      "offering": 101,
+      "day": 3,
+      "start": 3,
+      "end": 4,
+      "location": 2,
+      "mask": "100000000000000000",
+      "weeks": "18周",
+      "teachers": [
+        1
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1003,
+      "offering": 102,
+      "day": 4,
+      "start": 1,
+      "end": 2,
+      "location": 1,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        1,
+        2
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1004,
+      "offering": 103,
+      "day": 2,
+      "start": 3,
+      "end": 4,
+      "location": 1,
+      "mask": "000000000011111111",
+      "weeks": "1-8周",
+      "teachers": [
+        1
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1005,
+      "offering": 103,
+      "day": 2,
+      "start": 3,
+      "end": 4,
+      "location": 1,
+      "mask": "011111111000000000",
+      "weeks": "10-17周",
+      "teachers": [
+        3
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1006,
+      "offering": 104,
+      "day": 1,
+      "start": 1,
+      "end": 2,
+      "location": 1,
+      "mask": "000000000000000001",
+      "weeks": "1周",
+      "teachers": [
+        2
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1007,
+      "offering": 104,
+      "day": 1,
+      "start": 1,
+      "end": 2,
+      "location": 2,
+      "mask": "000000000000000010",
+      "weeks": "2周",
+      "teachers": [
+        2
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1008,
+      "offering": 105,
+      "day": 3,
+      "start": 5,
+      "end": 6,
+      "location": 2,
+      "mask": "000001111011111111",
+      "weeks": "1-8周,10-13周",
+      "teachers": [
+        4
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1009,
+      "offering": 105,
+      "day": 5,
+      "start": 9,
+      "end": 12,
+      "location": 2,
+      "mask": "000010101000000000",
+      "weeks": "10-14周(双)",
+      "teachers": [
+        4
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1010,
+      "offering": 106,
+      "day": 4,
+      "start": 3,
+      "end": 4,
+      "location": 1,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        5
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1011,
+      "offering": 107,
+      "day": 5,
+      "start": 1,
+      "end": 2,
+      "location": 1,
+      "mask": "000000000000000001",
+      "weeks": "1周",
+      "teachers": [
+        3
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1012,
+      "offering": 107,
+      "day": 5,
+      "start": 1,
+      "end": 2,
+      "location": 3,
+      "mask": "000000000000000010",
+      "weeks": "2周",
+      "teachers": [
+        3
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1013,
+      "offering": 107,
+      "day": 5,
+      "start": 1,
+      "end": 2,
+      "location": 4,
+      "mask": "000000000000000100",
+      "weeks": "3周",
+      "teachers": [
+        3
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1014,
+      "offering": 108,
+      "day": 7,
+      "start": 12,
+      "end": 12,
+      "location": 2,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        5
+      ],
+      "batch": 31
+    },
+    {
+      "id": 1015,
+      "offering": 109,
+      "day": 6,
+      "start": 1,
+      "end": 2,
+      "location": 2,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        5
+      ],
+      "batch": 32
+    },
+    {
+      "id": 1016,
+      "offering": 110,
+      "day": 7,
+      "start": 3,
+      "end": 4,
+      "location": 1,
+      "mask": "000000000000001111",
+      "weeks": "1-4周",
+      "teachers": [
+        2
+      ],
+      "batch": 33
+    }
+  ],
+  "batches": [
+    {
+      "id": 31,
+      "college": 1,
+      "semester": 1,
+      "title": "软件学院2026秋匿名结构样例"
+    },
+    {
+      "id": 32,
+      "college": 2,
+      "semester": 1,
+      "title": "人工测试范围B样例"
+    },
+    {
+      "id": 33,
+      "college": 1,
+      "semester": 2,
+      "title": "人工测试学期B样例"
+    }
+  ],
+  "roles": [
+    {
+      "id": 1,
+      "code": "ADMIN",
+      "name": "测试管理员"
+    },
+    {
+      "id": 2,
+      "code": "DIRECTOR",
+      "name": "测试主任"
+    },
+    {
+      "id": 3,
+      "code": "TEACHER",
+      "name": "测试教师"
+    },
+    {
+      "id": 4,
+      "code": "SUPERVISOR",
+      "name": "测试督导"
+    }
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "username": "admin-test",
+      "teacher": null
+    },
+    {
+      "id": 2,
+      "username": "director-a-test",
+      "teacher": null
+    },
+    {
+      "id": 3,
+      "username": "teacher-a-test",
+      "teacher": 1
+    },
+    {
+      "id": 4,
+      "username": "teacher-b-test",
+      "teacher": 2
+    },
+    {
+      "id": 5,
+      "username": "supervisor-a-test",
+      "teacher": null
+    }
+  ],
+  "scopes": [
+    {
+      "id": 1,
+      "user": 1,
+      "role": 1,
+      "type": "GLOBAL",
+      "teacher": null,
+      "offering": null
+    },
+    {
+      "id": 2,
+      "user": 2,
+      "role": 2,
+      "type": "GLOBAL",
+      "teacher": null,
+      "offering": null
+    },
+    {
+      "id": 3,
+      "user": 3,
+      "role": 3,
+      "type": "SELF_TEACHER",
+      "teacher": 1,
+      "offering": null
+    },
+    {
+      "id": 4,
+      "user": 4,
+      "role": 3,
+      "type": "SELF_TEACHER",
+      "teacher": 2,
+      "offering": null
+    },
+    {
+      "id": 5,
+      "user": 5,
+      "role": 4,
+      "type": "OFFERING",
+      "teacher": null,
+      "offering": 104
+    },
+    {
+      "id": 6,
+      "user": 3,
+      "role": 4,
+      "type": "OFFERING",
+      "teacher": null,
+      "offering": 104
+    }
+  ],
+  "evaluations": [
+    {
+      "id": 801,
+      "offering": 101,
+      "status": "COMPLETED",
+      "completedAt": "2026-08-30 00:00:00"
+    },
+    {
+      "id": 802,
+      "offering": 101,
+      "status": "COMPLETED",
+      "completedAt": "2026-08-30 00:00:00"
+    },
+    {
+      "id": 803,
+      "offering": 102,
+      "status": "COMPLETED",
+      "completedAt": "2026-08-30 00:00:00"
+    },
+    {
+      "id": 804,
+      "offering": 103,
+      "status": "RECORDED",
+      "completedAt": null
+    }
+  ]
+}

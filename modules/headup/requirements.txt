@@ -1,0 +1,18 @@
+# 抬头率模块依赖
+#
+# 重要：**核心运行路径只依赖 Python 3.11+ 标准库**（http.server / sqlite3 / urllib / hmac / json）。
+# 下面这些是可选增强，缺任何一个都不会让契约路径失效：
+#
+#   Pillow  —— 抽帧后的图像缩放/裁剪/编码取巧；缺失时 Qwen-VL 路径会显式失败并给出提示
+#   openai  —— 只为将来切到 SDK 调用准备的；当前实现直接用 urllib 走 OpenAI 兼容 HTTP 接口
+#   requests—— 仅在本机需要脚本化探测 DashScope 时方便，不被模块 import
+#
+# 另外需要外部工具 ffmpeg / ffprobe（不受 pip 管理）：
+#   - 本机 PATH 里有就直接用；
+#   - 否则用 FFMPEG_PATH / FFPROBE_PATH 指向本项目私有工具目录，例如
+#     ../../.work/tools/ffmpeg/ffmpeg.exe
+#
+# 安装（可选）：
+#   python -m pip install -r requirements.txt
+
+Pillow==12.2.0

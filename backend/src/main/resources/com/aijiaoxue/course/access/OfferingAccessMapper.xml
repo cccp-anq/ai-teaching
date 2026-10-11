@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijiaoxue.course.access.OfferingAccessMapper">
+  <sql id="authorizedDataset">
+    <choose>
+      <when test="scope.global">1=1</when>
+      <otherwise>
+        (1=0
+        <if test="!scope.teacherIds.isEmpty()">
+          OR EXISTS (SELECT 1 FROM class_schedule authorized_schedule
+            JOIN schedule_teacher authorized_teacher ON authorized_teacher.schedule_id=authorized_schedule.id
+            WHERE authorized_schedule.offering_id=o.id AND authorized_teacher.teacher_id IN
+            <foreach collection="scope.teacherIds" item="teacher" open="(" separator="," close=")">#{teacher}</foreach>)
+        </if>
+        <if test="!scope.offeringIds.isEmpty()">
+          OR o.id IN <foreach collection="scope.offeringIds" item="offering" open="(" separator="," close=")">#{offering}</foreach>
+        </if>)
+      </otherwise>
+    </choose>
+  </sql>
+
+  <sql id="courseOfferingFilters">
+    <if test="criteria.semesterId != null">AND o.semester_id=#{criteria.semesterId}</if>
+    <if test="criteria.courseName != null">AND LOCATE(LOWER(#{criteria.courseName}), LOWER(o.display_name)) &gt; 0</if>
+    <if test="criteria.courseCode != null">AND LOWER(c.course_code)=LOWER(#{criteria.courseCode})</if>
+    <if test="criteria.sourceScopeCollegeId != null">
+      AND o.source_scope_college_id=#{criteria.sourceScopeCollegeId}
+    </if>
+    <if test="criteria.ownerCollegeId != null">
+      AND c.owner_college_id=#{criteria.ownerCollegeId}
+    </if>
+    <if test="criteria.teacherName != null or criteria.week != null or criteria.weekday != null or criteria.section != null or criteria.location != null">
+      AND EXISTS (
+        SELECT 1
+        FROM class_schedule filtered_schedule
+        <if test="criteria.location != null">
+          JOIN location filtered_location ON filtered_location.id=filtered_schedule.location_id
+        </if>
+        WHERE filtered_schedule.offering_id=o.id
+        <if test="criteria.teacherName != null">
+          AND EXISTS (
+            SELECT 1
+            FROM schedule_teacher filtered_schedule_teacher
+            JOIN teacher filtered_teacher ON filtered_teacher.id=filtered_schedule_teacher.teacher_id
+            WHERE filtered_schedule_teacher.schedule_id=filtered_schedule.id
+              AND LOCATE(LOWER(#{criteria.teacherName}), LOWER(filtered_teacher.normalized_name)) &gt; 0
+          )
+        </if>
+        <if test="criteria.week != null">
+          AND EXISTS (
+            SELECT 1
+            FROM schedule_week filtered_week
+            WHERE filtered_week.schedule_id=filtered_schedule.id
+              AND filtered_week.week_no=#{criteria.week}
+          )
+        </if>
+        <if test="criteria.weekday != null">AND filtered_schedule.weekday=#{criteria.weekday}</if>
+        <if test="criteria.section != null">
+          AND filtered_schedule.start_section &lt;=#{criteria.section}
+          AND filtered_schedule.end_section &gt;=#{criteria.section}
+        </if>
+        <if test="criteria.location != null">
+          AND LOCATE(LOWER(#{criteria.location}), LOWER(filtered_location.normalized_name)) &gt; 0
+        </if>
+      )
+    </if>
+  </sql>
+
+  <select id="select" resultType="com.aijiaoxue.course.access.OfferingReference">
+    SELECT o.id,o.display_name AS displayName FROM course_offering o
+    WHERE (<include refid="authorizedDataset"/>)
+    <if test="id != null">AND o.id=#{id}</if>
+    <if test="sourceCollegeId != null">AND o.source_scope_college_id=#{sourceCollegeId}</if>
+    <if test="teacherId != null">
+      AND EXISTS (SELECT 1 FROM class_schedule filtered_schedule
+        JOIN schedule_teacher filtered_teacher ON filtered_teacher.schedule_id=filtered_schedule.id
+        WHERE filtered_schedule.offering_id=o.id AND filtered_teacher.teacher_id=#{teacherId})
+    </if>
+    ORDER BY o.id
+  </select>
+
+  <select id="countSearch" resultType="long">
+    SELECT COUNT(*)
+    FROM course_offering o
+    LEFT JOIN course c ON c.id=o.course_id
+    WHERE (<include refid="authorizedDataset"/>)
+    <include refid="courseOfferingFilters"/>
+  </select>
+
+  <select id="selectSearchPage" resultType="com.aijiaoxue.course.access.OfferingQueryRow">
+    SELECT o.id AS offeringId,
+           o.display_name AS displayName,
+           c.course_code AS courseCode,
+           o.activity_type AS activityType,
+           o.class_group_text AS classGroupText,
+           o.student_count AS studentCount,
+           sem.id AS semesterId,
+           sem.semester_code AS semesterCode,
+           sem.semester_name AS semesterName,
+           o.source_scope_college_id AS sourceScopeCollegeId,
+           owner_college.id AS ownerCollegeId,
+           owner_college.college_code AS ownerCollegeCode,
+           owner_college.college_name AS ownerCollegeName,
+           c.syllabus_ref AS syllabusRef
+    FROM course_offering o
+    LEFT JOIN course c ON c.id=o.course_id
+    LEFT JOIN college owner_college ON owner_college.id=c.owner_college_id
+    JOIN semester sem ON sem.id=o.semester_id
+    WHERE (<include refid="authorizedDataset"/>)
+    <include refid="courseOfferingFilters"/>
+    ORDER BY o.display_name ASC, o.id ASC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="selectListSchedules" resultType="com.aijiaoxue.course.access.OfferingListScheduleRow">
+    SELECT schedule.offering_id AS offeringId,
+           schedule.id AS scheduleId,
+           schedule.weekday,
+           schedule.start_section AS startSection,
+           schedule.end_section AS endSection,
+           schedule.raw_week_text AS rawWeekText,
+           location.id AS locationId,
+           location.display_name AS locationDisplayName,
+           location.location_group AS locationGroup,
+           location.location_type AS locationType
+    FROM class_schedule schedule
+    JOIN location ON location.id=schedule.location_id
+    WHERE schedule.offering_id IN
+    <foreach collection="offeringIds" item="offeringId" open="(" separator="," close=")">
+      #{offeringId}
+    </foreach>
+    ORDER BY schedule.offering_id ASC, schedule.weekday ASC,
+             schedule.start_section ASC, schedule.end_section ASC, schedule.id ASC
+  </select>
+
+  <select id="selectDetailBase" resultType="com.aijiaoxue.course.access.OfferingDetailRow">
+    SELECT o.id AS offeringId,
+           o.display_name AS displayName,
+           c.id AS courseId,
+           c.course_name AS courseName,
+           c.course_code AS courseCode,
+           c.syllabus_ref AS syllabusRef,
+           c.description AS description,
+           o.activity_type AS activityType,
+           o.class_group_text AS classGroupText,
+           o.student_count AS studentCount,
+           sem.id AS semesterId,
+           sem.semester_code AS semesterCode,
+           sem.semester_name AS semesterName,
+           sem.first_week_date AS firstWeekDate,
+           source_college.id AS sourceScopeCollegeId,
+           source_college.college_code AS sourceScopeCollegeCode,
+           source_college.college_name AS sourceScopeCollegeName,
+           owner_college.id AS ownerCollegeId,
+           owner_college.college_code AS ownerCollegeCode,
+           owner_college.college_name AS ownerCollegeName
+    FROM course_offering o
+    JOIN semester sem ON sem.id=o.semester_id
+    JOIN college source_college ON source_college.id=o.source_scope_college_id
+    LEFT JOIN course c ON c.id=o.course_id
+    LEFT JOIN college owner_college ON owner_college.id=c.owner_college_id
+    WHERE (<include refid="authorizedDataset"/>)
+      AND o.id=#{offeringId}
+  </select>
+
+  <select id="selectDetailSchedules" resultType="com.aijiaoxue.course.access.OfferingScheduleRow">
+    SELECT schedule.id AS scheduleId,
+           schedule.weekday,
+           schedule.start_section AS startSection,
+           schedule.end_section AS endSection,
+           schedule.raw_week_text AS rawWeekText,
+           location.id AS locationId,
+           location.display_name AS locationDisplayName,
+           location.location_group AS locationGroup,
+           location.location_type AS locationType
+    FROM class_schedule schedule
+    JOIN location ON location.id=schedule.location_id
+    WHERE schedule.offering_id=#{offeringId}
+    ORDER BY schedule.weekday ASC,
+             schedule.start_section ASC,
+             schedule.end_section ASC,
+             schedule.id ASC
+  </select>
+
+  <select id="selectDetailWeeks" resultType="com.aijiaoxue.course.access.ScheduleWeekRow">
+    SELECT schedule_id AS scheduleId,
+           week_no AS weekNo
+    FROM schedule_week
+    WHERE schedule_id IN
+    <foreach collection="scheduleIds" item="scheduleId" open="(" separator="," close=")">
+      #{scheduleId}
+    </foreach>
+    GROUP BY schedule_id, week_no
+    ORDER BY schedule_id ASC, week_no ASC
+  </select>
+
+  <select id="selectDetailTeachers" resultType="com.aijiaoxue.course.access.ScheduleTeacherRow">
+    SELECT relation.schedule_id AS scheduleId,
+           teacher.id AS teacherId,
+           teacher.display_name AS displayName
+    FROM schedule_teacher relation
+    JOIN teacher ON teacher.id=relation.teacher_id
+    WHERE relation.schedule_id IN
+    <foreach collection="scheduleIds" item="scheduleId" open="(" separator="," close=")">
+      #{scheduleId}
+    </foreach>
+    GROUP BY relation.schedule_id, teacher.id, teacher.display_name
+    ORDER BY relation.schedule_id ASC, teacher.display_name ASC, teacher.id ASC
+  </select>
+
+  <select id="selectComparisonTeachers" resultType="com.aijiaoxue.course.access.ComparisonTeacherRow">
+    SELECT DISTINCT teacher.id AS teacherId,
+           teacher.display_name AS displayName
+    FROM course_offering o
+    JOIN class_schedule schedule ON schedule.offering_id=o.id
+    JOIN schedule_teacher relation ON relation.schedule_id=schedule.id
+    JOIN teacher ON teacher.id=relation.teacher_id
+    WHERE (<include refid="authorizedDataset"/>)
+      AND teacher.id IN
+    <foreach collection="teacherIds" item="teacherId" open="(" separator="," close=")">
+      #{teacherId}
+    </foreach>
+    ORDER BY teacher.id ASC
+  </select>
+
+  <select id="selectComparisonOfferings" resultType="com.aijiaoxue.course.access.ComparisonOfferingRow">
+    SELECT DISTINCT relation.teacher_id AS selectedTeacherId,
+           o.id AS offeringId,
+           o.display_name AS displayName,
+           o.activity_type AS activityType,
+           o.class_group_text AS classGroupText,
+           o.student_count AS studentCount,
+           sem.id AS semesterId,
+           sem.semester_code AS semesterCode,
+           sem.semester_name AS semesterName,
+           c.syllabus_ref AS syllabusRef,
+           c.description AS description
+    FROM course_offering o
+    JOIN semester sem ON sem.id=o.semester_id
+    LEFT JOIN course c ON c.id=o.course_id
+    JOIN class_schedule participating_schedule ON participating_schedule.offering_id=o.id
+    JOIN schedule_teacher relation ON relation.schedule_id=participating_schedule.id
+    WHERE (<include refid="authorizedDataset"/>)
+      AND relation.teacher_id IN
+      <foreach collection="teacherIds" item="teacherId" open="(" separator="," close=")">
+        #{teacherId}
+      </foreach>
+    ORDER BY relation.teacher_id ASC, o.display_name ASC, o.id ASC
+  </select>
+
+  <select id="selectComparisonSchedules" resultType="com.aijiaoxue.course.access.ComparisonScheduleRow">
+    SELECT relation.teacher_id AS selectedTeacherId,
+           o.id AS offeringId,
+           schedule.id AS scheduleId,
+           schedule.weekday,
+           schedule.start_section AS startSection,
+           schedule.end_section AS endSection,
+           schedule.raw_week_text AS rawWeekText,
+           location.id AS locationId,
+           location.display_name AS locationDisplayName,
+           location.location_group AS locationGroup,
+           location.location_type AS locationType
+    FROM course_offering o
+    JOIN class_schedule schedule ON schedule.offering_id=o.id
+    JOIN schedule_teacher relation ON relation.schedule_id=schedule.id
+    JOIN location ON location.id=schedule.location_id
+    WHERE (<include refid="authorizedDataset"/>)
+      AND relation.teacher_id IN
+      <foreach collection="teacherIds" item="teacherId" open="(" separator="," close=")">
+        #{teacherId}
+      </foreach>
+    ORDER BY relation.teacher_id ASC,
+             o.id ASC,
+             schedule.weekday ASC,
+             schedule.start_section ASC,
+             schedule.end_section ASC,
+             schedule.id ASC
+  </select>
+</mapper>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijiaoxue.course.lookup.CourseLookupMapper">
+
+    <select id="selectSemesters" resultType="com.aijiaoxue.course.lookup.SemesterLookup">
+        SELECT id            AS semesterId,
+               semester_code AS semesterCode,
+               semester_name AS semesterName
+        FROM semester dimension
+        <if test="!scope.global">
+            WHERE EXISTS (
+                SELECT 1
+                FROM course_offering o
+                WHERE o.semester_id=dimension.id
+                  AND (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+            )
+        </if>
+        ORDER BY semester_code, id
+    </select>
+
+    <select id="selectColleges" resultType="com.aijiaoxue.course.lookup.CollegeLookup">
+        SELECT id           AS collegeId,
+               college_code AS collegeCode,
+               college_name AS collegeName
+        FROM college dimension
+        <if test="!scope.global">
+            WHERE EXISTS (
+                SELECT 1
+                FROM course_offering o
+                WHERE o.source_scope_college_id=dimension.id
+                  AND (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+            )
+        </if>
+        ORDER BY college_code, id
+    </select>
+
+
+    <!-- Formal owner colleges visible inside the caller's authorized dataset only
+         (Offering → Course → owner_college_id). Never the source-scope college list. -->
+    <select id="selectOwnerColleges" resultType="com.aijiaoxue.course.lookup.CollegeLookup">
+        SELECT DISTINCT c.id           AS collegeId,
+                        c.college_code AS collegeCode,
+                        c.college_name AS collegeName
+        FROM college c
+        JOIN course co ON co.owner_college_id=c.id
+        JOIN course_offering o ON o.course_id=co.id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        ORDER BY c.college_code, c.id
+    </select>
+
+    <!-- Display identity of teachers actually teaching inside the caller's authorized dataset.
+         Teachers without any authorized schedule relation are not enumerable (DEC-024/C3). -->
+    <select id="selectTeachers" resultType="com.aijiaoxue.course.lookup.TeacherLookup">
+        SELECT DISTINCT t.id           AS teacherId,
+                        t.display_name AS displayName
+        FROM teacher t
+        JOIN schedule_teacher st ON st.teacher_id=t.id
+        JOIN class_schedule cs ON cs.id=st.schedule_id
+        JOIN course_offering o ON o.id=cs.offering_id
+        WHERE (<include refid="com.aijiaoxue.course.access.OfferingAccessMapper.authorizedDataset"/>)
+        ORDER BY t.display_name, t.id
+    </select>
+
+</mapper>

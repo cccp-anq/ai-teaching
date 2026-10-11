@@ -1,0 +1,134 @@
+{
+  "generatedAt": "2026-09-14T14:24:42Z",
+  "providerId": "head-up-local",
+  "moduleVersion": "head-up-0.1.0",
+  "definitionId": "head-up-qwen-vl-v1",
+  "promptVersion": "headup-prompt-1",
+  "analyzer": {
+    "name": "qwen-vl",
+    "version": "headup-prompt-1"
+  },
+  "visionModel": "qwen3-vl-plus",
+  "windowMs": 10000,
+  "frameTileGrid": "1x1",
+  "minLegibleRatio": 0.6,
+  "media": {
+    "path": "docs/fixtures/head-up-module-v0.1/media/headup-realclassroom-scenes-50s.mp4",
+    "sha256": "ee34c8c0b2c7e027ae05ef864de05e3e9c520af7bb0b3031d24a5142066faf06",
+    "durationMs": 50000,
+    "note": "由 CC 授权课堂照片硬切拼接的合成测试视频，非真实课堂录像"
+  },
+  "scenes": [
+    {
+      "index": 1,
+      "startMs": 0,
+      "endMs": 10000,
+      "sourcePhoto": "wm-lecture-front.jpg",
+      "scene": "正面视角：教师与学生同框（可判断抬头状态）"
+    },
+    {
+      "index": 2,
+      "startMs": 10000,
+      "endMs": 20000,
+      "sourcePhoto": "wm-classroom-81.jpg",
+      "scene": "俯拍视角：学生低头操作设备，多人仅见后脑"
+    },
+    {
+      "index": 3,
+      "startMs": 20000,
+      "endMs": 30000,
+      "sourcePhoto": "wm-classroom-93.jpg",
+      "scene": "教室全景（Wikimedia CC BY-SA 4.0）"
+    },
+    {
+      "index": 4,
+      "startMs": 30000,
+      "endMs": 40000,
+      "sourcePhoto": "wm-classroom-24.jpg",
+      "scene": "学生活动场景（Wikimedia CC BY-SA 4.0）"
+    },
+    {
+      "index": 5,
+      "startMs": 40000,
+      "endMs": 50000,
+      "sourcePhoto": "wm-lecture-hall.jpg",
+      "scene": "竖幅教室全景（Wikimedia CC BY-SA 4.0）"
+    }
+  ],
+  "wallClockSeconds": 9.9,
+  "windowQuality": {
+    "VALID": 5
+  },
+  "windowRates": [
+    0.7142857142857143,
+    0.75,
+    1.0,
+    0.7777777777777778,
+    0.3333333333333333
+  ],
+  "meanRate": 0.7150793650793651,
+  "validCoverage": 1.0,
+  "perWindowNotes": [
+    {
+      "windowId": "win-001",
+      "sampleAtMs": 5000,
+      "quality": "VALID",
+      "qualityReason": null,
+      "headUpCount": 5,
+      "validObservedCount": 7,
+      "unknownCount": 1,
+      "legibleRatio": 0.875,
+      "modelConfidence": 0.95,
+      "notes": []
+    },
+    {
+      "windowId": "win-002",
+      "sampleAtMs": 15000,
+      "quality": "VALID",
+      "qualityReason": null,
+      "headUpCount": 6,
+      "validObservedCount": 8,
+      "unknownCount": 5,
+      "legibleRatio": 0.6154,
+      "modelConfidence": 0.85,
+      "notes": []
+    },
+    {
+      "windowId": "win-003",
+      "sampleAtMs": 25000,
+      "quality": "VALID",
+      "qualityReason": null,
+      "headUpCount": 18,
+      "validObservedCount": 18,
+      "unknownCount": 2,
+      "legibleRatio": 0.9,
+      "modelConfidence": 0.95,
+      "notes": []
+    },
+    {
+      "windowId": "win-004",
+      "sampleAtMs": 35000,
+      "quality": "VALID",
+      "qualityReason": null,
+      "headUpCount": 7,
+      "validObservedCount": 9,
+      "unknownCount": 6,
+      "legibleRatio": 0.6,
+      "modelConfidence": 0.85,
+      "notes": []
+    },
+    {
+      "windowId": "win-005",
+      "sampleAtMs": 45000,
+      "quality": "VALID",
+      "qualityReason": null,
+      "headUpCount": 1,
+      "validObservedCount": 3,
+      "unknownCount": 2,
+      "legibleRatio": 0.6,
+      "modelConfidence": 0.9,
+      "notes": []
+    }
+  ],
+  "credentialsConfigured": true
+}

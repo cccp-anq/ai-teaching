@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "req-head-up-realclassroom-001",
+  "moduleType": "HEAD_UP",
+  "classSessionId": "session-realclassroom-001",
+  "mediaId": "media-realclassroom-001",
+  "media": {
+    "sha256": "ee34c8c0b2c7e027ae05ef864de05e3e9c520af7bb0b3031d24a5142066faf06",
+    "durationMs": 50000,
+    "mimeType": "video/mp4",
+    "sourceUrl": "<主项目提供的受控 HTTPS 短期下载地址>",
+    "urlExpiresAt": "2099-01-01T00:00:00Z"
+  },
+  "analysisRange": {
+    "startMs": 0,
+    "endMs": 50000
+  },
+  "parameters": {
+    "windowMs": 10000,
+    "outputMode": "COUNTS",
+    "definitionId": "head-up-qwen-vl-v1"
+  }
+}

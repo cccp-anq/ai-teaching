@@ -1,0 +1,7 @@
+/.work/
+/.env
+/.env.*
+!/.env.example
+**/target/
+**/__pycache__/
+/modules/headup/.t/

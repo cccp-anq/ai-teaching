@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    爱教学 / 课程内容分析模块 —— 腾讯云 ASR 沙盒
+    版本与主工程 ai_teaching/backend 对齐（Spring Boot 4.0.8 + Java 17），
+    便于把 asr/ 包整体搬回主工程。
+  -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.8</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.aijiaoxue</groupId>
+  <artifactId>transcription-module</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>transcription-module</name>
+  <description>课堂转写模块（《三项目公共接口契约 v0.1》实现）</description>
+
+  <properties>
+    <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- 腾讯云 SDK：只引 asr 模块，不引体积巨大的 tencentcloud-sdk-java 全家桶 -->
+    <tencentcloud.sdk.version>3.2.24</tencentcloud.sdk.version>
+    <!-- 阿里云 OSS SDK：仅用于音频暂存 -->
+    <aliyun.oss.sdk.version>3.18.2</aliyun.oss.sdk.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+    </dependency>
+
+    <!-- Flyway：flyway-core 11.x 内置 H2 支持；主工程接 MySQL 时再加 flyway-mysql -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.tencentcloudapi</groupId>
+      <artifactId>tencentcloud-sdk-java-asr</artifactId>
+      <version>${tencentcloud.sdk.version}</version>
+    </dependency>
+
+    <!--
+      阿里云 OSS SDK：仅用于音频暂存（把抽好的音轨换成预签名 URL）。
+
+      为什么用 SDK 而不是自己实现签名：OSS 的签名规则（HMAC-SHA1 + 规范化资源串 +
+      参数排序）细节不少，写错的症状是一堆 SignatureDoesNotMatch——
+      那时要排查的是"我的签名哪里算错了"，而不是"转写功能哪里不对"。
+
+      ⚠️ 该 SDK 带 Jackson 2，而本项目是 Spring Boot 4 + Jackson 3（tools.jackson）。
+      两者包名不同（com.fasterxml vs tools.jackson）可以共存，且 Jackson 2
+      其实已经由腾讯云 SDK 引入在 classpath 上了；但"共存"与"新引入的库污染
+      Spring 的 Jackson 3 自动配置"是两回事，所以引入后必须确认容器启动正常
+      （AsrProviderWiringTest + TranscriptionContractEndToEndTest 就是那道闸）。
+    -->
+    <dependency>
+      <groupId>com.aliyun.oss</groupId>
+      <artifactId>aliyun-sdk-oss</artifactId>
+      <version>${aliyun.oss.sdk.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <!-- Windows 控制台默认 GBK，不固定编码会把中文日志打成乱码 -->
+          <jvmArguments>-Dfile.encoding=UTF-8</jvmArguments>
+        </configuration>
+      </plugin>
+
+      <!--
+        测试 JVM 的编码，解决 Maven 控制台里中文日志乱码。
+
+        根因：Java 17 在 Windows 上并不用 file.encoding 决定 stdout 编码，
+        而是读【控制台代码页】（本机是 936/GBK）。所以只设 -Dfile.encoding=UTF-8
+        是不够的——控制台是 GBK、读者按 UTF-8 解，就必然乱码。
+
+        这里在 argLine 上显式指定标准流编码，与 pom 里已经固定的
+        project.build.sourceEncoding=UTF-8 对齐（源码一直是 UTF-8 且编译正常，
+        乱码只发生在控制台输出这一层）。
+
+        代价说明：若控制台本身是 GBK（cmd 默认如此），UTF-8 输出仍会显示为乱码，
+        需要先把控制台切到 UTF-8（chcp 65001）；而 Windows Terminal / VS Code
+        终端本来就是 UTF-8，改完即正常。这条是"让输出编码可控且正确"，
+        不是"在任何终端都好看"——后者做不到，因为两种终端的期望编码相反。
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

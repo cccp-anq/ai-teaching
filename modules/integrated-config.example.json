@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "transcription": {
+    "ASR_PROVIDER": "aliyun-filetrans",
+    "DASHSCOPE_API_KEY": "",
+    "ALIYUN_ASR_MODEL": "qwen-audio-3.0-asr-flash-filetrans",
+    "STAGING_TYPE": "oss",
+    "OSS_ACCESS_KEY_ID": "",
+    "OSS_ACCESS_KEY_SECRET": "",
+    "OSS_BUCKET": "",
+    "OSS_REGION": "cn-beijing",
+    "OSS_PREFIX": "ai-teaching/transcription/"
+  },
+  "headup": {
+    "VISION_PROVIDER": "qwen-vl",
+    "VISION_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "VISION_MODEL": "qwen3-vl-plus",
+    "VISION_FALLBACK_MODEL": "qwen3-vl-flash",
+    "DASHSCOPE_API_KEY": ""
+  },
+  "report": {
+    "CLASSROOM_REPORT_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "CLASSROOM_REPORT_MODEL": "qwen3.7-plus",
+    "CLASSROOM_REPORT_API_KEY": ""
+  },
+  "runtime": {
+    "javaPath": "java",
+    "pythonPath": "python",
+    "ffmpegPath": "ffmpeg",
+    "ffprobePath": "ffprobe",
+    "transcriptionToken": "",
+    "headupToken": "",
+    "mediaSigningKey": ""
+  }
+}

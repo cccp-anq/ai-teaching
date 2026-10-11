@@ -1,0 +1,29 @@
+{
+  "baseUrl": "http://127.0.0.1:54013",
+  "mediaUrlHost": "127.0.0.1（本地联调）",
+  "postStatus": 202,
+  "replayStatus": 200,
+  "replayReusedJobId": true,
+  "terminalStatus": "SUCCEEDED",
+  "windowQuality": {
+    "VALID": 0,
+    "NO_SUBJECTS": 2,
+    "LOW_QUALITY": 0
+  },
+  "stats": {
+    "statisticsVersion": "stats-v1",
+    "durationMs": 20000,
+    "headUp": {
+      "processedDurationMs": 20000,
+      "processedCoverage": 1.0,
+      "validDurationMs": 0,
+      "validCoverage": 0.0,
+      "meanRate": null,
+      "windowRates": [
+        null,
+        null
+      ],
+      "changes": []
+    }
+  }
+}

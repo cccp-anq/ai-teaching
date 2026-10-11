@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "req-head-up-ratio-001",
+  "moduleType": "HEAD_UP",
+  "classSessionId": "session-demo-001",
+  "mediaId": "media-demo-001",
+  "media": {
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "durationMs": 60000,
+    "mimeType": "video/mp4",
+    "sourceUrl": "https://media.example.invalid/fixture.mp4",
+    "urlExpiresAt": "2099-01-01T00:00:00Z"
+  },
+  "analysisRange": {
+    "startMs": 0,
+    "endMs": 60000
+  },
+  "parameters": {
+    "windowMs": 10000,
+    "outputMode": "RATIO_ONLY",
+    "definitionId": "head-up-demo-v1"
+  }
+}

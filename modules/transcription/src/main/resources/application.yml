@@ -1,0 +1,171 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: transcription-module
+  datasource:
+    # 转写模块自己的库：契约 §1 明确"模块不访问主库"
+    url: ${DB_URL:jdbc:h2:file:./.data/transcription;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    clean-disabled: true
+    # V2 fills a historical numbering gap; existing local databases may already contain V3.
+    out-of-order: true
+
+logging:
+  level:
+    com.aijiaoxue.videoreact: INFO
+
+# ============================================================
+#  契约层：身份、鉴权与容量边界（部署交接表的数值来源）
+# ============================================================
+videoreact:
+  contract:
+    # 本部署注册的供应者标识；必须与凭证绑定，主项目按值登记
+    provider-id: ${MODULE_PROVIDER_ID:transcription-local}
+    # 实现版本：标识实际算法/配置组合，换模型或换抽音轨策略都要改它
+    module-version: ${MODULE_VERSION:transcription-1.0.0}
+    # 机器凭证（逗号分隔）。必须是随机长串，从环境/密钥管理注入，
+    # 禁止写进 Git、fixture 或日志。留空 → 失败关闭：所有 /api/v1 请求 401
+    bearer-tokens: ${MODULE_BEARER_TOKENS:}
+    max-body-bytes: ${MAX_BODY_BYTES:1048576}
+    max-segments: ${MAX_SEGMENTS:20000}
+    max-poll-seconds: ${MAX_POLL_SECONDS:1800}
+
+  media:
+    work-dir: ${MEDIA_WORK_DIR:./.work/media}
+    ffmpeg-path: ${FFMPEG_PATH:./.work/tools/ffmpeg/bin/ffmpeg.exe}
+    ffprobe-path: ${FFPROBE_PATH:./.work/tools/ffmpeg/bin/ffprobe.exe}
+    connect-timeout-seconds: ${MEDIA_CONNECT_TIMEOUT:10}
+    download-timeout-seconds: ${MEDIA_DOWNLOAD_TIMEOUT:600}
+    probe-timeout-seconds: ${MEDIA_PROBE_TIMEOUT:180}
+    extract-timeout-seconds: ${MEDIA_EXTRACT_TIMEOUT:7200}
+    orphan-retention-hours: ${MEDIA_ORPHAN_RETENTION_HOURS:24}
+    cleanup-interval-ms: ${MEDIA_CLEANUP_INTERVAL_MS:3600000}
+    # 单次下载上限 2GB：课堂长录像经 16k 单声道抽取后送入 ASR 的体积远小于此
+    max-download-bytes: ${MEDIA_MAX_DOWNLOAD_BYTES:2147483648}
+    # 允许的最大媒体时长 2 小时；超过返回 422
+    max-duration-ms: ${MEDIA_MAX_DURATION_MS:7200000}
+    # 主机白名单：留空表示不限（仍拒绝内网地址）
+    host-allow-list: ${MEDIA_HOST_ALLOW_LIST:}
+    # 仅本地联调可开；生产必须 false
+    allow-loopback-http: ${MEDIA_ALLOW_LOOPBACK_HTTP:false}
+    # 实际时长与登记 durationMs 的允许偏差；超出只告警、不静默裁切
+    duration-tolerance-ms: ${MEDIA_DURATION_TOLERANCE_MS:2000}
+    keep-media-and-audio: ${MEDIA_KEEP_FILES:false}
+
+  # ==========================================================
+  #  ASR 提供方适配（识别引擎，可替换；不影响契约行为）
+  # ==========================================================
+  asr:
+    inline-max-bytes: ${ASR_INLINE_MAX_BYTES:67108864}
+    provider:
+      # wand = 腾讯云 TokenHub wand-asr-v1（Bearer Key，支持内联 base64 音频）
+      # tencent = 腾讯云标准 ASR（SecretId/SecretKey + TC3 签名）
+      # aliyun-filetrans = 阿里云百炼非实时语音识别（只接受公网 URL，需要先暂存音轨）
+      type: ${ASR_PROVIDER:wand}
+      endpoint: ${ASR_ENDPOINT:asr.tencentcloudapi.com}
+      connect-timeout-seconds: ${ASR_CONNECT_TIMEOUT_SECONDS:10}
+      read-timeout-seconds: ${ASR_READ_TIMEOUT_SECONDS:120}
+      tencent:
+        secret-id: ${TENCENT_SECRET_ID:}
+        secret-key: ${TENCENT_SECRET_KEY:}
+        region: ${TENCENT_REGION:ap-guangzhou}
+      wand:
+        base-url: ${WAND_BASE_URL:https://tokenhub.tencentmaas.com}
+        api-key: ${WAND_API_KEY:}
+        model: ${WAND_MODEL:wand-asr-v1}
+      aliyun:
+        # 业务空间 ID：配了就改写为专属域名
+        # https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api/v1
+        # 2026-09-15 实测：公共域名 dashscope.aliyuncs.com 也接受 workspace 形态的 Key
+        # 并正常出结果，所以 WorkspaceId 不是可用性的前提（专属域名官方称更稳，生产建议配）
+        workspace-id: ${DASHSCOPE_WORKSPACE_ID:}
+        # 仅在未配 workspace-id 时生效
+        base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/api/v1}
+        api-key: ${DASHSCOPE_API_KEY:}
+        # 12 小时 / 2GB 长音频档，支持热词、Prompt 上下文与说话人分离
+        model: ${ALIYUN_ASR_MODEL:qwen-audio-3.0-asr-flash-filetrans}
+        # 语种提示短码（zh/en/ja/yue/ko/de/fr/ru）；留空表示整个字段都不发，让引擎自判。
+        # 实测 filetrans 接受该参数（官方参数表只列了 paraformer-v2，是文档滞后）；
+        # 中英混说的课建议配 zh,en——但"被接受"不等于"更准"，要断言得用真实课堂音频做对照
+        language-hints: ${ALIYUN_ASR_LANGUAGE_HINTS:}
+        # 说话人分离仅支持单声道；本模块抽出的是 16k 单声道 WAV，满足前提。
+        # 实测开启后结果里会出现 speaker_id 字段
+        diarization-enabled: ${ALIYUN_ASR_DIARIZATION:false}
+        # 说话人数参考值 2-100；0 表示不传。
+        # 实测传越界值（1）不报错也不生效，服务端不校验，所以这里只发合规值
+        speaker-count: ${ALIYUN_ASR_SPEAKER_COUNT:0}
+        # 定制热词表 ID。注意实测：传一个不存在的 ID 不报错、任务仍成功（静默忽略），
+        # 所以热词配错了不会有任何提示，需要靠识别结果自己发现
+        vocabulary-id: ${ALIYUN_ASR_VOCABULARY_ID:}
+        # 要识别的音轨索引。⚠️ 发给阿里云时必须包装成数组（代码里已处理）：
+        # 发标量时提交返回 HTTP 200，任务却在异步阶段以
+        # "parameter.channel_id must be an array" 失败（2026-09-15 实测）
+        channel-id: ${ALIYUN_ASR_CHANNEL_ID:0}
+    poll:
+      enabled: ${ASR_POLL_ENABLED:true}
+      interval: ${ASR_POLL_INTERVAL:5s}
+      initial-delay: ${ASR_POLL_INITIAL_DELAY:10s}
+      batch-size: ${ASR_POLL_BATCH_SIZE:20}
+      timeout: ${ASR_POLL_TIMEOUT:PT2H}
+    engine:
+      model-type: ${ASR_ENGINE_MODEL_TYPE:16k_zh_en_2.0}
+      channel-num: ${ASR_CHANNEL_NUM:1}
+      res-text-format: ${ASR_RES_TEXT_FORMAT:3}
+      source-type: ${ASR_SOURCE_TYPE:0}
+      speaker-diarization: ${ASR_SPEAKER_DIARIZATION:0}
+      convert-num-mode: ${ASR_CONVERT_NUM_MODE:1}
+      filter-dirty: ${ASR_FILTER_DIRTY:0}
+      filter-punc: ${ASR_FILTER_PUNC:0}
+      filter-modal: ${ASR_FILTER_MODAL:0}
+      sentence-max-length: ${ASR_SENTENCE_MAX_LENGTH:0}
+    debug:
+      dump-raw-result: ${ASR_DEBUG_DUMP_RAW_RESULT:false}
+      dump-dir: ${ASR_DEBUG_DUMP_DIR:./.work/asr-raw}
+
+  # ==========================================================
+  #  音频暂存（阿里云 filetrans 只收公网 URL，必须先暂存）
+  #  ----------------------------------------------------------
+  #  独立于 asr.provider 是有意的：暂存的存在只因为「那条路要求公网 URL」，
+  #  与用哪家引擎无关；塞进 provider 会让 tencent/wand 也带着一坨永远为 null 的 OSS 字段。
+  #
+  #  ⚠️ 当前 type 只有 inline 一种实现（= 对任何暂存请求明确失败，不静默降级）。
+  #     下面的 oss 字段是【占位】，上传逻辑尚未实现，见 docs/OSS暂存接入方案.md。
+  # ==========================================================
+  staging:
+    type: ${STAGING_TYPE:inline}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket: ${OSS_BUCKET:}
+    # 必须与识别引擎同地域（百炼华北2 = cn-beijing）；跨地域拉取会慢
+    region: ${OSS_REGION:cn-beijing}
+    # 单独开一个前缀便于配生命周期规则自动清理陈留对象
+    prefix: ${OSS_PREFIX:videoreact/staging/}
+    # ⚠️ 这个端点会被【识别引擎的服务器】访问，必须是公网 HTTPS。
+    # 留空则按 region 推导为 https://oss-{region}.aliyuncs.com
+    public-endpoint: ${OSS_PUBLIC_ENDPOINT:}
+    # 部署在 ECS 上时填内网端点省流量（如 https://oss-cn-beijing-internal.aliyuncs.com）
+    internal-endpoint: ${OSS_INTERNAL_ENDPOINT:}
+    # 必须覆盖「排队 + 识别 + 轮询」全过程：中途失效会让任务以含糊的下载失败告终
+    url-expiry-seconds: ${OSS_URL_EXPIRY_SECONDS:10800}
+    multipart-threshold-bytes: ${OSS_MULTIPART_THRESHOLD_BYTES:104857600}
+    multipart-part-size-bytes: ${OSS_MULTIPART_PART_SIZE_BYTES:10485760}
+    timeout-seconds: ${OSS_TIMEOUT_SECONDS:300}
+    max-retries: ${OSS_MAX_RETRIES:3}
+  course-hotwords:
+    default-weight: ${ASR_HOTWORD_DEFAULT_WEIGHT:10}
+    max-list-size: ${ASR_HOTWORD_LIST_MAX_SIZE:128}
+    max-word-length: ${ASR_HOTWORD_MAX_WORD_LENGTH:30}
+    by-course: {}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "req-head-up-real-001",
+  "moduleType": "HEAD_UP",
+  "classSessionId": "session-headup-fixture-001",
+  "mediaId": "media-headup-fixture-001",
+  "media": {
+    "sha256": "a6a3f7988b254d8943e95f495c6ca53ca0e09060df4eeb402cd29e5a18a137c9",
+    "durationMs": 20000,
+    "mimeType": "video/mp4",
+    "sourceUrl": "<部署时替换为受控 HTTPS 下载地址>",
+    "urlExpiresAt": "2099-01-01T00:00:00Z"
+  },
+  "analysisRange": {
+    "startMs": 0,
+    "endMs": 20000
+  },
+  "parameters": {
+    "windowMs": 10000,
+    "outputMode": "COUNTS",
+    "definitionId": "head-up-qwen-vl-v1"
+  }
+}

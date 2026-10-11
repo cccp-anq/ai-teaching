@@ -1,0 +1,22 @@
+{
+  "parameters" : {
+    "language" : "zh-CN",
+    "enableSpeakerLabels" : false
+  },
+  "classSessionId" : "session-fixture-001",
+  "schemaVersion" : "1.0",
+  "moduleType" : "TRANSCRIPTION",
+  "media" : {
+    "sha256" : "d7599881a3e28eb9578349a5a17e1ef8553c7be5d4d5521ff452cec6387cdd3b",
+    "mimeType" : "video/mp4",
+    "urlExpiresAt" : "2030-01-01T00:00:00Z",
+    "durationMs" : 60000,
+    "sourceUrl" : "http://lvh.me:65416/media"
+  },
+  "analysisRange" : {
+    "endMs" : 60000,
+    "startMs" : 0
+  },
+  "mediaId" : "media-fixture-001",
+  "clientRequestId" : "req-transcription-module-001"
+}

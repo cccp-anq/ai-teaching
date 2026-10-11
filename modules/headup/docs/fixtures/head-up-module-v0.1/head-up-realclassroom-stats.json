@@ -1,0 +1,57 @@
+{
+  "statisticsVersion": "stats-v2",
+  "metricVersion": "head-up-rate-v0.2",
+  "durationMs": 50000,
+  "headUp": {
+    "processedDurationMs": 50000,
+    "processedCoverage": 1.0,
+    "validDurationMs": 50000,
+    "validCoverage": 1.0,
+    "meanRate": 0.8222222222222222,
+    "aggregation": "sum_ratio",
+    "aggregatedWindowCount": 5,
+    "aggregatedDurationMs": 50000,
+    "v1DurationWeightedMeanRate": 0.7150793650793651,
+    "sumHeadUpCount": 37,
+    "sumEvaluableCount": 45,
+    "windowRates": [
+      0.7142857142857143,
+      0.75,
+      1.0,
+      0.7777777777777778,
+      0.3333333333333333
+    ],
+    "windowRatesAll": [
+      0.7142857142857143,
+      0.75,
+      1.0,
+      0.7777777777777778,
+      0.3333333333333333
+    ],
+    "qualityCounts": {
+      "VALID": 5
+    },
+    "changes": [
+      {
+        "fromWindowId": "win-001",
+        "toWindowId": "win-002",
+        "deltaPercentagePoints": 3.57142857142857
+      },
+      {
+        "fromWindowId": "win-002",
+        "toWindowId": "win-003",
+        "deltaPercentagePoints": 25.0
+      },
+      {
+        "fromWindowId": "win-003",
+        "toWindowId": "win-004",
+        "deltaPercentagePoints": -22.22222222222222
+      },
+      {
+        "fromWindowId": "win-004",
+        "toWindowId": "win-005",
+        "deltaPercentagePoints": -44.44444444444445
+      }
+    ]
+  }
+}

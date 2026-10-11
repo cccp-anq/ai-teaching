@@ -1,0 +1,1 @@
+ALTER TABLE transcription_job ADD COLUMN speaker_labels BOOLEAN NOT NULL DEFAULT FALSE;

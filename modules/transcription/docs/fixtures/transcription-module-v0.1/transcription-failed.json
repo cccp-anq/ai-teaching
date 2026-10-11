@@ -1,0 +1,27 @@
+{
+  "schemaVersion" : "1.0",
+  "clientRequestId" : "req-transcription-module-001-failed",
+  "jobId" : "job-6aa6adec-7dd3-4e8d-a35b-959f57ca4f00",
+  "moduleType" : "TRANSCRIPTION",
+  "providerId" : "transcription-module",
+  "moduleVersion" : "0.1.0",
+  "classSessionId" : "session-fixture-001",
+  "mediaId" : "media-fixture-001",
+  "mediaSha256" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "durationMs" : 60000,
+  "timeBase" : "MEDIA_START_MS",
+  "analysisRange" : {
+    "startMs" : 0,
+    "endMs" : 60000
+  },
+  "status" : "FAILED",
+  "revision" : 1,
+  "createdAt" : "2026-09-27T09:44:48.625697Z",
+  "updatedAt" : "2026-09-27T09:44:48.632698Z",
+  "payload" : null,
+  "error" : {
+    "code" : "MEDIA_HASH_MISMATCH",
+    "message" : "媒体内容与登记的 sha256 不一致：期望 aaaaaaaa…aaaaaaaa，实际 d7599881…387cdd3b。这属于数据问题，重试无效。",
+    "retryable" : false
+  }
+}

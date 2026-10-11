@@ -1,0 +1,18 @@
+{
+  "status" : "UP",
+  "moduleType" : "TRANSCRIPTION",
+  "providerId" : "transcription-module",
+  "moduleVersion" : "0.1.0",
+  "schemaVersion" : "1.0",
+  "timeBase" : "MEDIA_START_MS",
+  "checkedAt" : "2026-09-27T09:44:48.613698300Z",
+  "capabilities" : {
+    "speakerLabels" : false,
+    "maxSegments" : "20000",
+    "maxDurationMs" : "7200000",
+    "languages" : [ "zh-CN", "zh", "zh-Hans", "en", "en-US", "zh-en", "auto" ],
+    "ffmpegConfigured" : true,
+    "confidenceFromEngine" : false,
+    "maxBodyBytes" : "1048576"
+  }
+}

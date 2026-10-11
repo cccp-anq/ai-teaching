@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijiaoxue.importing.timetable.TimetableImportMapper">
+  <select id="semester" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$SemesterRef">
+    SELECT id,semester_code AS code FROM semester WHERE id=#{id}
+  </select>
+  <select id="collegeForUpdate" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$CollegeRef">
+    SELECT id,college_code AS code FROM college WHERE id=#{id} FOR UPDATE
+  </select>
+  <select id="successfulBatch" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$BatchRecord">
+    SELECT id,total_rows AS totalRows,success_rows AS successRows,failure_rows AS failureRows
+    FROM import_batch
+    WHERE source_sha256=#{sourceSha256} AND semester_id=#{semesterId}
+      AND source_scope_college_id=#{sourceScopeCollegeId} AND status='SUCCESS'
+    ORDER BY id LIMIT 1
+  </select>
+  <select id="offering" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$OfferingRecord">
+    SELECT id,course_id AS courseId,semester_id AS semesterId,
+      source_scope_college_id AS sourceScopeCollegeId,
+      official_offering_code AS officialOfferingCode,source_offering_key AS sourceOfferingKey,
+      display_name AS displayName,activity_type AS activityType,class_group_text AS classGroupText,
+      student_count AS studentCount,status
+    FROM course_offering WHERE source_offering_key=#{sourceOfferingKey}
+  </select>
+  <select id="location" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$LocationRecord">
+    SELECT id,display_name AS displayName,normalized_name AS normalizedName,
+      location_group AS locationGroup,location_type AS locationType
+    FROM location WHERE normalized_name=#{normalizedName} AND location_group=#{locationGroup}
+  </select>
+  <select id="locationForUpdate" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$LocationRecord">
+    SELECT id,display_name AS displayName,normalized_name AS normalizedName,
+      location_group AS locationGroup,location_type AS locationType
+    FROM location WHERE normalized_name=#{normalizedName} AND location_group=#{locationGroup}
+    FOR UPDATE
+  </select>
+  <select id="teachers" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$TeacherRecord">
+    SELECT id,employee_no AS employeeNo,display_name AS displayName,normalized_name AS normalizedName,
+      source_teacher_key AS sourceTeacherKey,identity_status AS identityStatus
+    FROM teacher WHERE source_teacher_key=#{sourceTeacherKey} ORDER BY id
+  </select>
+  <select id="schedule" resultType="com.aijiaoxue.importing.timetable.TimetableImportMapper$ScheduleRecord">
+    SELECT s.id,s.offering_id AS offeringId,s.weekday,s.start_section AS startSection,
+      s.end_section AS endSection,s.location_id AS locationId,s.week_mask AS weekMask,
+      s.raw_week_text AS rawWeekText,s.source_schedule_key AS sourceScheduleKey,
+      l.display_name AS locationDisplayName,l.normalized_name AS locationNormalizedName,
+      l.location_group AS locationGroup,l.location_type AS locationType
+    FROM class_schedule s JOIN location l ON l.id=s.location_id
+    WHERE s.source_schedule_key=#{sourceScheduleKey}
+  </select>
+  <select id="scheduleWeeks" resultType="java.lang.Integer">
+    SELECT week_no FROM schedule_week WHERE schedule_id=#{scheduleId} ORDER BY week_no
+  </select>
+  <select id="scheduleTeacherIds" resultType="java.lang.Long">
+    SELECT teacher_id FROM schedule_teacher WHERE schedule_id=#{scheduleId} ORDER BY teacher_id
+  </select>
+  <select id="scheduleCount" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM class_schedule WHERE offering_id=#{offeringId}
+  </select>
+  <select id="weekCount" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM schedule_week WHERE schedule_id=#{scheduleId}
+  </select>
+  <select id="teacherCount" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM schedule_teacher WHERE schedule_id=#{scheduleId}
+  </select>
+
+  <insert id="insertBatch" useGeneratedKeys="true" keyProperty="holder.id" keyColumn="id">
+    INSERT INTO import_batch(source_type,source_namespace,source_title,source_scope_college_id,
+      semester_id,source_file_name,source_sha256,parser_version,total_rows,success_rows,failure_rows,
+      status,operator_user_id,started_at)
+    VALUES (#{row.sourceType},#{row.sourceNamespace},#{row.sourceTitle},#{row.sourceScopeCollegeId},
+      #{row.semesterId},#{row.sourceFileName},#{row.sourceSha256},#{row.parserVersion},#{row.totalRows},
+      0,0,'PROCESSING',#{row.operatorUserId},#{row.startedAt})
+  </insert>
+  <update id="finishBatch">
+    UPDATE import_batch SET success_rows=#{successRows},failure_rows=0,status='SUCCESS',finished_at=#{finishedAt}
+    WHERE id=#{id} AND status='PROCESSING'
+  </update>
+  <insert id="insertOffering" useGeneratedKeys="true" keyProperty="holder.id" keyColumn="id">
+    INSERT INTO course_offering(course_id,semester_id,source_scope_college_id,official_offering_code,
+      source_offering_key,display_name,activity_type,class_group_text,student_count,status)
+    VALUES (NULL,#{row.semesterId},#{row.sourceScopeCollegeId},NULL,#{row.sourceOfferingKey},
+      #{row.displayName},#{row.activityType},#{row.classGroupText},#{row.studentCount},#{row.status})
+  </insert>
+  <insert id="insertLocation" useGeneratedKeys="true" keyProperty="holder.id" keyColumn="id">
+    INSERT INTO location(display_name,normalized_name,location_group,location_type)
+    VALUES (#{row.displayName},#{row.normalizedName},#{row.locationGroup},#{row.locationType})
+  </insert>
+  <insert id="insertTeacher" useGeneratedKeys="true" keyProperty="holder.id" keyColumn="id">
+    INSERT INTO teacher(employee_no,display_name,normalized_name,source_teacher_key,identity_status)
+    VALUES (NULL,#{row.displayName},#{row.normalizedName},#{row.sourceTeacherKey},#{row.identityStatus})
+  </insert>
+  <insert id="insertSchedule" useGeneratedKeys="true" keyProperty="holder.id" keyColumn="id">
+    INSERT INTO class_schedule(offering_id,weekday,start_section,end_section,location_id,week_mask,
+      raw_week_text,source_schedule_key)
+    VALUES (#{row.offeringId},#{row.weekday},#{row.startSection},#{row.endSection},#{row.locationId},
+      #{row.weekMask},#{row.rawWeekText},#{row.sourceScheduleKey})
+  </insert>
+  <insert id="insertScheduleWeek">
+    INSERT INTO schedule_week(schedule_id,week_no) VALUES (#{scheduleId},#{weekNo})
+  </insert>
+  <insert id="insertScheduleTeacher">
+    INSERT INTO schedule_teacher(schedule_id,teacher_id) VALUES (#{scheduleId},#{teacherId})
+  </insert>
+
+  <sql id="sourceColumns">
+    import_batch_id,source_index,raw_n,raw_t,raw_c,raw_p,raw_w,raw_rw,raw_d,raw_s,raw_h,raw_l,
+    raw_g,raw_json,row_hash,normalize_status,normalize_error,offering_id,schedule_id
+  </sql>
+  <sql id="sourceValuesBeforeJson">
+    #{importBatchId},#{source.sourceIndex},#{source.rawN},#{source.rawT},#{source.rawC},#{source.rawP},
+    #{source.rawW},#{source.rawRw},#{source.rawD},#{source.rawS},#{source.rawH},#{source.rawL},#{source.rawG},
+  </sql>
+  <sql id="sourceValuesAfterJson">
+    ,#{rowHash},'LINKED',NULL,#{offeringId},#{scheduleId}
+  </sql>
+  <insert id="insertSourceRow" databaseId="h2">
+    INSERT INTO source_timetable_row(<include refid="sourceColumns"/>)
+    VALUES (<include refid="sourceValuesBeforeJson"/> #{source.rawJson} FORMAT JSON <include refid="sourceValuesAfterJson"/>)
+  </insert>
+  <insert id="insertSourceRow" databaseId="mysql">
+    INSERT INTO source_timetable_row(<include refid="sourceColumns"/>)
+    VALUES (<include refid="sourceValuesBeforeJson"/> #{source.rawJson} <include refid="sourceValuesAfterJson"/>)
+  </insert>
+  <insert id="insertSourceRow">
+    INSERT INTO source_timetable_row(<include refid="sourceColumns"/>)
+    VALUES (<include refid="sourceValuesBeforeJson"/> #{source.rawJson} <include refid="sourceValuesAfterJson"/>)
+  </insert>
+</mapper>

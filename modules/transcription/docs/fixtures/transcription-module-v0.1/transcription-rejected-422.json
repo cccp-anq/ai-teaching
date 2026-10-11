@@ -1,0 +1,11 @@
+{
+  "code" : "VALIDATION_FAILED",
+  "message" : "请求校验未通过，共 1 处问题",
+  "retryable" : false,
+  "requestId" : "45032c9e-9295-490a-9362-812391efd662",
+  "details" : [ {
+    "path" : "parameters.enableSpeakerLabels",
+    "code" : "VALIDATION_FAILED",
+    "message" : "首版不支持说话人标签，请传 false（不能静默忽略）"
+  } ]
+}
