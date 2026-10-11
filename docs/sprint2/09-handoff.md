@@ -44,6 +44,15 @@
    `Start-Process -FilePath git -ArgumentList ... -RedirectStandardOutput <工作区内文件> -Wait`（句柄重定向可用）。
 3. **命令体里的中文常量会被破坏**：不要把中文路径/中文常量写进 `python -c "...脚本..."` 或 here-string 里，
    会被传输层破坏。做法：中文**作为参数**传递是安全的；或把脚本/内容写进文件（`write` 工具写文件没问题）。
+   另外：PowerShell 5.1 会把**无 BOM 的 UTF-8 脚本文件**当 ANSI 读，脚本内的中文常量会变成乱码——
+   传参给脚本或把路径写死在命令体里都可以，但别在 `.ps1` 里写中文常量。
+4. **换行风格（必读，踩过）**：仓库里的既有文件在 git 里是 **LF**，但本机编辑工具会把整份文件重写成
+   **CRLF**；提交后 diff 会显示成"整文件替换"（曾出现 3743 行删除的假 diff），无法人工审查。
+   提交前务必把本次改动过的文件统一成 LF 再 `git add`：
+   ```powershell
+   $t=[System.IO.File]::ReadAllText($f); [System.IO.File]::WriteAllText($f,$t.Replace("`r`n","`n"))
+   ```
+   自查：`git diff --ignore-cr-at-eol --numstat` 为空、而 `--numstat` 很大，就说明只差换行。
 
 ### 2.3 后端构建与测试
 
