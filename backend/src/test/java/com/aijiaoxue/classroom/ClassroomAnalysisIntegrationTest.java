@@ -615,6 +615,104 @@ class ClassroomAnalysisIntegrationTest {
         assertThrows(IllegalStateException.class,()->generatedReports.report(prepared.run().id()));
     }
 
+    /** Publishes one report version for a fresh upload and returns its media id. */
+    private long mediaWithGeneratedReport(String uploadKey,String requestKey,String providerRef) throws Exception {
+        var prepared=preparedExternalRun(uploadKey,requestKey);
+        String draft=generatedDraft(prepared);
+        var reservation=paidBudget.reserve("REPORT",prepared.run().id(),"e".repeat(64),
+                "qwen3.7-plus",100,2000);
+        paidBudget.markSucceeded(reservation.row().id(),providerRef,40,20,60,hash(draft));
+        generatedReports.persist(prepared.run().id(),reservation.row().id(),"qwen3.7-plus",draft);
+        return prepared.snapshot().input().mediaId();
+    }
+
+    @Test void s2reviewAnnotationsAreRecordedAndConfirmationFreezesTheTeacherVersion() throws Exception {
+        long mediaId=mediaWithGeneratedReport("upload-review-0001","analysis-review-0001","provider-review-1");
+        var supervisor=login("supervisor-a-test");
+        String reviewPath="/api/v1/class-sessions/media/"+mediaId+"/generated-report/review";
+
+        mvc.perform(get(reviewPath).session(supervisor)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/class-sessions/media/"+mediaId+"/confirmed-report").session(supervisor))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[{\"targetKind\":\"TOPIC\",\"targetIndex\":0,"
+                                +"\"verdict\":\"ISSUE\",\"note\":\"环节划分过粗，建议按提问切分\"}]}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.confirmed").value(false))
+                .andExpect(jsonPath("$.annotations.length()").value(1))
+                .andExpect(jsonPath("$.annotations[0].note").value("环节划分过粗，建议按提问切分"));
+
+        // 复核草稿是督导的工作底稿，教师看不到
+        mvc.perform(get(reviewPath).session(login("teacher-a-test"))).andExpect(status().isForbidden());
+
+        mvc.perform(post(reviewPath+"/confirm").with(csrf()).session(supervisor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.confirmed").value(true))
+                .andExpect(jsonPath("$.confirmedAt").isNotEmpty())
+                .andExpect(jsonPath("$.revision").value(2));
+
+        // S2-04：教师读到的就是冻结版本
+        mvc.perform(get("/api/v1/class-sessions/media/"+mediaId+"/confirmed-report")
+                        .session(login("teacher-a-test")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.annotations[0].note").value("环节划分过粗，建议按提问切分"))
+                .andExpect(jsonPath("$.report.topics[0].summary").value("讲解递归"));
+
+        // 已确认的复核不可再改；重复确认返回同一版本
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[{\"targetKind\":\"TOPIC\",\"targetIndex\":0,"
+                                +"\"verdict\":\"ACKNOWLEDGED\",\"note\":\"改主意了\"}]}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("REVIEW_ALREADY_CONFIRMED"));
+        mvc.perform(post(reviewPath+"/confirm").with(csrf()).session(supervisor))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(2));
+
+        assertEquals("讲解递归",com.jayway.jsonpath.JsonPath.read(jdbc.queryForObject(
+                "SELECT snapshot_json FROM classroom_report_review WHERE media_id=?",String.class,mediaId),
+                "$.report.topics[0].summary"));
+    }
+
+    @Test void s2reviewRejectsUnannotatedUnattributedAndForeignRequests() throws Exception {
+        long mediaId=mediaWithGeneratedReport("upload-review-0002","analysis-review-0002","provider-review-2");
+        var supervisor=login("supervisor-a-test");
+        String reviewPath="/api/v1/class-sessions/media/"+mediaId+"/generated-report/review";
+
+        mvc.perform(post(reviewPath+"/confirm").with(csrf()).session(supervisor))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REVIEW_NOT_FOUND"));
+
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[{\"targetKind\":\"TOPIC\",\"targetIndex\":0,"
+                                +"\"verdict\":\"ISSUE\",\"note\":\"   \"}]}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REVIEW_NOTE_REQUIRED"));
+
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[{\"targetKind\":\"TOPIC\",\"targetIndex\":0,"
+                                +"\"verdict\":\"MAYBE\",\"note\":\"结论不合法\"}]}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REVIEW_TARGET_INVALID"));
+
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":["
+                                +"{\"targetKind\":\"TOPIC\",\"targetIndex\":0,\"verdict\":\"ISSUE\",\"note\":\"甲\"},"
+                                +"{\"targetKind\":\"TOPIC\",\"targetIndex\":0,\"verdict\":\"ISSUE\",\"note\":\"乙\"}]}")
+                        .with(csrf()).session(supervisor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REVIEW_TARGET_DUPLICATE"));
+
+        mvc.perform(put(reviewPath).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"annotations\":[]}").with(csrf()).session(login("teacher-a-test")))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post(reviewPath+"/confirm").with(csrf())).andExpect(status().isUnauthorized());
+    }
+
     @Test void generatedReportReadIncludesGlobalAdminAndCourseRoles() throws Exception {
         var prepared=preparedExternalRun("upload-report-read-0001","analysis-report-read-0001");
         jdbc.update("UPDATE user_role_scope SET offering_id=104 WHERE id=5");
