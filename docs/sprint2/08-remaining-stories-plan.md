@@ -95,7 +95,8 @@ CREATE INDEX idx_segment_override_media ON classroom_segment_override (media_id,
 
 **验证**：后端 `ClassroomAnalysisIntegrationTest` 新增 2 条（目录与五条规则、只改标题/已确认报告两条取舍），
 连同 `DataModelTest`（新增表 + 唯一索引断言）、`ApplicationTest`、`MigrationModeTest`、`FixtureIntegrationTest`
-迁移版本断言共 88 项 0 失败；前端 `vue-tsc` 干净，`vitest` 24 文件 / 150 项全绿。
+迁移版本断言共 88 项 0 失败；**全量后端套件 335 项 0 失败**（10 项需外部环境者 skip）；
+前端 `vue-tsc` 干净，`vitest` 24 文件 / 150 项全绿。
 
 **注意（本项目已踩过的坑，后续改这里必看）**
 1. 新路径落在 `/api/v1/class-sessions/**` 下，`SecurityConfiguration` 已放行给 authenticated；

@@ -126,12 +126,13 @@ npm test            # vitest run（同样需要 danger-full-access）
 
 ### 3.4 验证基线（最近一次，S2-10 之后）
 
-- 后端（针对性 5 个类）：**88 项 0 失败**（`ClassroomAnalysisIntegrationTest` 33、`FixtureIntegrationTest` 33、
-  `DataModelTest` 15、`ApplicationTest` 6、`MigrationModeTest` 1；其中 2 项为需外部环境的 skip）
+- 后端（全量套件）：**335 项 0 失败 / 0 错误**（10 项需外部环境的用例被 skip）
+- 后端（针对性 5 个类，迭代时用）：88 项 0 失败（`ClassroomAnalysisIntegrationTest` 33、`FixtureIntegrationTest` 33、
+  `DataModelTest` 15、`ApplicationTest` 6、`MigrationModeTest` 1）
 - 前端：`vue-tsc` 干净；vitest **24 文件 / 150 项全绿**
-- **本轮未跑全量后端套件与 `scripts/Verify.ps1`**（提交前必须补跑）
-- 提交历史：`bdee344` → … → `37c29a3` → `2245895`（交接文档）→ S2-10 的提交，
-  每个故事都是功能分支 → `--no-ff` 合并 → 双分支推送
+- **`scripts/Verify.ps1` 未整跑**（它还含 Maven package 与 npm ci/build，提交前补跑一次）
+- 提交历史：`bdee344` → … → `37c29a3` → `2245895`（交接文档）→ `abacee6`（S2-10 代码）→
+  `6a6e875`（文档）→ `73f2b53`（`--no-ff` 合并回 `sprint2`），功能分支与 `sprint2` 均已推送 origin
 
 ---
 
