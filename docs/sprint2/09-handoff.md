@@ -25,8 +25,13 @@
 ### 2.1 仓库与远程
 
 - 工作区：`D:\第14组`；代码仓库：`D:\第14组\sport`
-- 远程：https://github.com/cccp-anq/ai-teaching （**私有**，gh 已登录 `cccp-anq`）
-- 分支：`main`（Sprint 1 基线，标签 `sprint1-baseline`）、`sprint2`（集成）、
+- 远程：https://github.com/cccp-anq/ai-teaching （**公开**，供外部审查；gh 已登录 `cccp-anq`）
+  - 仓库已于 2026-10-11 由私有改为公开，**默认分支已切到 `sprint2`**（否则审查者打开链接只看得到
+    `main` 上的 Sprint 1 基线，落后 24 个提交）。改回方式：`gh repo edit cccp-anq/ai-teaching --default-branch main`
+  - 公开前的凭证扫描结论：工作区与全部 25 个提交中**没有真实密钥**（命中的都是 `sk-xxxxxxxx`、
+    `sk-你的Key`、`change-me-...` 这类文档占位符）；`.work/`（含真实配置）已被 `.gitignore` 忽略且从未入库；
+    fixture 里的「真实课堂」视频是 Wikimedia Commons 的 CC 授权照片拼接，文档已注明"不是真实课堂录像"
+- 分支：`main`（Sprint 1 基线，标签 `sprint1-baseline`）、`sprint2`（集成，**默认分支**）、
   `feature/S2-01…`、`feature/S2-10-segment-override` 等功能分支
 - 分支命名规则：**功能分支统一用 `feature/` 前缀**。已存在 `sprint2` 分支时
   **不能**创建 `sprint2/xxx`（git ref 是层级结构，会直接报 `cannot lock ref`）
