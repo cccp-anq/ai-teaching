@@ -17,6 +17,10 @@ export const routes: RouteRecordRaw[] = [
   { path: '/my-actions', name: 'my-actions', component: () => import('../views/MyActionsView.vue'), meta: { requiresAuth: true } },
   { path: '/my-courses', redirect: '/my-schedule' },
   { path: '/supervision/coverage', name: 'coverage', component: () => import('../views/CoverageView.vue'), meta: { requiresAuth: true } },
+  // 复核必须绑定一节课：带 mediaId 的是复核页本身，不带 mediaId 的入口页只做指路提示。
+  // 静态路径写在参数路径之前，避免 /reports/review 被当成 mediaId。
+  { path: '/reports/review', name: 'report-review-index', component: () => import('../views/SupervisorReportReviewView.vue'), meta: { requiresAuth: true } },
+  { path: '/reports/:mediaId/review', name: 'report-review', component: () => import('../views/SupervisorReportReviewView.vue'), meta: { requiresAuth: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue') },
 ]
 

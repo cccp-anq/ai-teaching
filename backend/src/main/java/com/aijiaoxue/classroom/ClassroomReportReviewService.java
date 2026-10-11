@@ -32,6 +32,7 @@ public class ClassroomReportReviewService {
 
     private final ClassroomReportReviewStore reviews;
     private final ClassroomGeneratedReportStore generatedReports;
+    private final ClassroomReportNotificationService notifications;
     private final ClassroomAnalysisService analysis;
     private final CurrentUserProvider currentUsers;
     private final PermissionService permissions;
@@ -39,12 +40,14 @@ public class ClassroomReportReviewService {
 
     ClassroomReportReviewService(ClassroomReportReviewStore reviews,
                                  ClassroomGeneratedReportStore generatedReports,
+                                 ClassroomReportNotificationService notifications,
                                  ClassroomAnalysisService analysis,
                                  CurrentUserProvider currentUsers,
                                  PermissionService permissions,
                                  ObjectMapper json) {
         this.reviews = reviews;
         this.generatedReports = generatedReports;
+        this.notifications = notifications;
         this.analysis = analysis;
         this.currentUsers = currentUsers;
         this.permissions = permissions;
@@ -99,6 +102,9 @@ public class ClassroomReportReviewService {
                 throw new ClassroomAnalysisException("REVIEW_NOTE_REQUIRED",
                         "每条复核标注都必须填写说明", 400);
         reviews.freeze(row.id(), snapshot(row.reportId(), row.mediaId(), annotations));
+        // S2-05: publishing is what notifies the offering's teachers; the guard inside makes a
+        // repeated confirmation a no-op rather than a second notification.
+        notifications.notifyPublishedReport(mediaId, row.id());
         return view(reviews.find(stored.id()));
     }
 

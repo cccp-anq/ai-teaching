@@ -673,6 +673,32 @@ class ClassroomAnalysisIntegrationTest {
         assertEquals("讲解递归",com.jayway.jsonpath.JsonPath.read(jdbc.queryForObject(
                 "SELECT snapshot_json FROM classroom_report_review WHERE media_id=?",String.class,mediaId),
                 "$.report.topics[0].summary"));
+
+        // S2-05：确认即通知开课教师本人；重复确认不产生第二条
+        long notificationId=((Number)com.jayway.jsonpath.JsonPath.read(
+                mvc.perform(get("/api/v1/me/notifications").session(login("teacher-a-test")))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.length()").value(1))
+                        .andExpect(jsonPath("$[0].kind").value("REPORT_PUBLISHED"))
+                        .andExpect(jsonPath("$[0].state").value("UNREAD"))
+                        .andExpect(jsonPath("$[0].mediaId").value(mediaId))
+                        .andReturn().getResponse().getContentAsString(),
+                "$[0].notificationId")).longValue();
+        assertEquals(1,jdbc.queryForObject(
+                "SELECT COUNT(*) FROM classroom_report_notification WHERE media_id=?",Integer.class,mediaId));
+        mvc.perform(get("/api/v1/me/notifications").session(login("teacher-b-test")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+
+        mvc.perform(post("/api/v1/me/notifications/"+notificationId+"/read").with(csrf())
+                        .session(login("teacher-a-test")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("READ"))
+                .andExpect(jsonPath("$.readAt").isNotEmpty());
+        // 别人的通知按不存在处理
+        mvc.perform(post("/api/v1/me/notifications/"+notificationId+"/read").with(csrf())
+                        .session(login("teacher-b-test")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/me/notifications")).andExpect(status().isUnauthorized());
     }
 
     @Test void s2reviewRejectsUnannotatedUnattributedAndForeignRequests() throws Exception {

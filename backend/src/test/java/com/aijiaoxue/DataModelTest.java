@@ -119,8 +119,8 @@ class DataModelTest {
         assertEquals(1,number("SELECT COUNT(*) FROM source_timetable_row r JOIN import_batch b ON r.import_batch_id=b.id JOIN class_schedule s ON r.schedule_id=s.id AND r.offering_id=s.offering_id WHERE r.id=?",row));
     }
     @Test void dm10_migrationAndRepeatAreSuccessful() throws Exception {
-        assertEquals(22,migrationsApplied);
-        assertEquals("22",flyway.info().current().getVersion().toString());
+        assertEquals(23,migrationsApplied);
+        assertEquals("23",flyway.info().current().getVersion().toString());
         flyway.validate();
         assertEquals(0,flyway.migrate().migrationsExecuted);
         assertEquals(2,number("SELECT COUNT(*) FROM class_schedule WHERE offering_id=?",offering));
@@ -195,6 +195,7 @@ class DataModelTest {
                 "username_only_login_audit",
                 "teacher_action",
                 "classroom_report_review","classroom_report_review_annotation",
+                "classroom_report_notification",
                 "flyway_schema_history"),tables);
         assertIndex("course_offering","uq_offering_source_key",false,"source_offering_key");
         assertIndex("class_schedule","uq_schedule_source_key",false,"source_schedule_key");

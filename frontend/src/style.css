@@ -329,3 +329,24 @@ tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Sprint 2 report review (S2-03/S2-04) and shared form actions */
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.hint { color: var(--ink-muted); font-size: 12px; }
+.review-banner { display: grid; gap: 4px; margin: 0 0 18px; padding: 14px 18px; color: var(--primary-strong); background: var(--primary-soft); border: 1px solid #cfe6de; border-radius: 12px; }
+.review-banner span { color: var(--ink-soft); font-size: 13px; }
+.review-summary { margin: 0 0 14px; color: var(--ink-soft); font-size: 13px; }
+.review-actions { margin-top: 20px; }
+.target-list { display: grid; gap: 14px; }
+.target-card { padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm); }
+.target-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.target-kind { color: var(--primary-strong); font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.target-evidence { color: var(--ink-muted); font-size: 12px; }
+.target-body { margin: 8px 0 12px; color: var(--ink); }
+.annotation-list { display: grid; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+.annotation-list li { display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; }
+.verdict-chip { flex: none; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.verdict-chip.issue { color: #8c2f22; background: var(--danger-soft); }
+.verdict-chip.ok { color: var(--primary-strong); background: var(--primary-soft); }
+.annotation-form { display: grid; gap: 10px; margin-top: 10px; }
+.annotation-form label { display: grid; gap: 4px; color: var(--ink-soft); font-size: 13px; }
